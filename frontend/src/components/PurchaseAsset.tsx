@@ -73,7 +73,7 @@ export default function PurchaseAsset({
         });
       }
     },
-    [assetPurchaseAmount],
+    [assetPurchaseAmount, selectedOption],
   );
 
   const {
