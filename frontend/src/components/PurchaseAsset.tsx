@@ -61,9 +61,9 @@ export default function PurchaseAsset({
           "djddhdy",
         ).then((res) => {
           if (res.successful) {
-            alert("Purchase Successful");
+            alert("Payment Successful");
           } else {
-            alert("Purchase UnSuccessful");
+            alert("Payment UnSuccessful");
           }
         });
       } else {
