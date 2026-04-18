@@ -59,7 +59,13 @@ export default function PurchaseAsset({
           "GB6LYIAOJOLIADDQCLPRTXWYMPYBQZCR57BTKQ35ZEKZDRK6K5H25DAW",
           "10",
           "djddhdy",
-        );
+        ).then((res) => {
+          if (res.successful) {
+            alert("Purchase Successful");
+          } else {
+            alert("Purchase UnSuccessful");
+          }
+        });
       } else {
         // Handle EVM purchase logic here
         console.log("EVM purchase selected");
