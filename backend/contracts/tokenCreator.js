@@ -10,7 +10,10 @@ import {
 } from "ethers";
 import { tokenCreatorAbi } from "./abi.js";
 
+import * as Stellar from "@stellar/stellar-sdk";
+
 const contractAddress = process.env.CONTRACT_ADDRESS;
+const stellar_api = process.env.STELLAR_API;
 const RPC_URL = process.env.RPC_URL;
 const provider = new JsonRpcProvider(RPC_URL);
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
@@ -72,7 +75,42 @@ export async function Transfer_Token(id, wallet_address, amount) {
   return receipt;
 }
 
-export async function getTransaction(hash) {
+export async function getTransaction(hash, gateway) {
+  if (gateway === "STELLAR") {
+    return await getStellarTransaction(hash);
+  } else if (gateway === "EVM") {
+    return await getEvmTransaction(hash);
+  } else {
+    throw new Error("Unsupported gateway");
+  }
+}
+
+async function getStellarTransaction(hash) {
+  const server = new Stellar.Horizon.Server(stellar_api);
+  try {
+    const payments = await server.payments().forTransaction(hash).call();
+
+    const payment = payments.records[0]; // Most common case
+
+    if (!payment || payment.asset_type !== "native") {
+      throw new Error("Not a valid XLM payment");
+    }
+    console.log("Payment Details:", {
+      sender: payment.from,
+      receiver: payment.to,
+      amount: payment.amount,
+      txHash: hash,
+      createdAt: payment.created_at,
+      successful: payment.transaction_successful,
+    });
+    return [payment.from, payment.to, payment.amount];
+  } catch (error) {
+    console.error("Error fetching transaction:", error);
+    throw error;
+  }
+}
+
+async function getEvmTransaction(hash) {
   const receipt = await provider.getTransactionReceipt(hash);
   const data = await getPurchaseTokenEvents(receipt);
   return data;

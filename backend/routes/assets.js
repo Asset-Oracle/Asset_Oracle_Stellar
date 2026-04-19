@@ -12,6 +12,7 @@ const {
 } = require("../contracts/tokenCreator");
 
 const contractAddress = process.env.CONTRACT_ADDRESS;
+const stellar_wallet = process.env.STELLAR_WALLET;
 
 // Test endpoint to check Supabase connection
 router.get("/test-db", async (req, res) => {
@@ -580,10 +581,24 @@ router.post("/:id/tokenize", async (req, res) => {
 
 router.post("/:id/create_payment", async (req, res) => {
   const id = req.params.id;
-  const { wallet_address, token_amount } = req.body;
-  if (!id || !wallet_address || token_amount <= 0) {
+  const { evm_wallet_address, stellar_wallet_address, token_amount, gateway } =
+    req.body;
+  if (
+    !id ||
+    !evm_wallet_address ||
+    token_amount <= 0 ||
+    !gateway ||
+    (gateway !== "STELLAR" && gateway !== "EVM")
+  ) {
     return res.status(400).json({
-      error: "Missing required fields: id, wallet_address, token_amount",
+      error:
+        "Missing required fields: id, wallet_address, token_amount, gateway",
+    });
+  }
+  if (gateway === "STELLAR" && !stellar_wallet_address) {
+    return res.status(400).json({
+      error:
+        "Missing required fields: stellar_wallet_address for STELLAR gateway",
     });
   }
   const { data: asset, error: assetError } = await supabase
@@ -597,22 +612,34 @@ router.post("/:id/create_payment", async (req, res) => {
       message: "Couldnt Find Asset",
     });
   }
+  let wallet_address;
+  if (gateway === "STELLAR") {
+    wallet_address = stellar_wallet_address;
+  } else {
+    wallet_address = evm_wallet_address;
+  }
 
   try {
     const memo = uniqid();
     const price_per_token = asset.price_per_token;
     const token_number = asset.token_number;
-    const transfer_amount = ethers.parseEther("0.0000015");
+    let transfer_amount;
+    if (gateway === "STELLAR") {
+      transfer_amount = Number(5).toFixed(7);
+    } else {
+      transfer_amount = ethers.parseEther(Number(0.0000015).toString());
+    }
     console.log(price_per_token, memo, token_number, token_amount);
     const { data: createdPayment, error: paymentCreationError } = await supabase
       .from("payments")
       .insert({
         memo,
         eth_amount: Number(transfer_amount),
-        token_amount: Number(ethers.parseEther(token_amount.toString())),
+        token_amount: token_amount,
         wallet_address,
         token_number,
         status: "PENDING",
+        gateway,
       })
       .select()
       .single();
@@ -638,14 +665,14 @@ router.post("/:id/create_payment", async (req, res) => {
 });
 
 router.post("/:id/confirm_purchase", async (req, res) => {
-  const { wallet_address, hash, memo } = req.body;
+  const { evm_wallet_address, stellar_wallet_address, hash, memo } = req.body;
   const id = req.params.id;
-  if ((!hash || !wallet_address || !id, !memo)) {
+  if (!hash || !evm_wallet_address || !id || !memo) {
     return res.status(400).json({
       error: "Missing required fields: hash, amount, id, memo",
     });
   }
-  console.log(hash, wallet_address, memo);
+  console.log(hash, evm_wallet_address, stellar_wallet_address, memo);
   const { data: paymentData, error: paymentError } = await supabase
     .from("payments")
     .select("*")
@@ -675,8 +702,16 @@ router.post("/:id/confirm_purchase", async (req, res) => {
     });
   }
   const token_number = asset.token_number;
+  const gateway = paymentData.gateway;
+  let wallet_address;
+  if (gateway === "STELLAR") {
+    wallet_address = stellar_wallet_address;
+  } else {
+    wallet_address = evm_wallet_address;
+  }
+  console.log("Gate Way", gateway);
   try {
-    const data = await getTransaction(hash);
+    const data = await getTransaction(hash, gateway);
 
     if (data[0].toLowerCase() !== wallet_address.toLowerCase()) {
       const { data: updatePayment, error: updatePaymentError } = await supabase
@@ -687,14 +722,15 @@ router.post("/:id/confirm_purchase", async (req, res) => {
         .eq("memo", memo)
         .select()
         .single();
-      return res.status(201).json({
-        data: {
-          hash: "",
-          status: "FAILED",
-        },
-      });
+      throw new Error("Invalid sender address");
     }
-    if (data[1].toLowerCase() !== contractAddress.toLowerCase()) {
+    if (
+      data[1].toLowerCase() !==
+      (gateway === "STELLAR"
+        ? stellar_wallet.toLowerCase()
+        : contractAddress.toLowerCase())
+    ) {
+      console.log(stellar_wallet.toLowerCase(), contractAddress.toLowerCase());
       const { data: updatePayment, error: updatePaymentError } = await supabase
         .from("payments")
         .update({
@@ -703,12 +739,7 @@ router.post("/:id/confirm_purchase", async (req, res) => {
         .eq("memo", memo)
         .select()
         .single();
-      return res.status(201).json({
-        data: {
-          hash: "",
-          status: "FAILED",
-        },
-      });
+      throw new Error("Invalid recipient address");
     }
     if (Number(data[3]) < paymentData.eth_amount) {
       const { data: updatePayment, error: updatePaymentError } = await supabase
@@ -719,17 +750,12 @@ router.post("/:id/confirm_purchase", async (req, res) => {
         .eq("memo", memo)
         .select()
         .single();
-      return res.status(201).json({
-        data: {
-          hash: "",
-          status: "FAILED",
-        },
-      });
+      throw new Error("Insufficient amount transferred");
     }
 
     const receipt = await Transfer_Token(
       token_number,
-      wallet_address,
+      evm_wallet_address,
       paymentData.token_amount,
     );
     console.log("PayMent Receipt : ", receipt.hash);
@@ -739,6 +765,7 @@ router.post("/:id/confirm_purchase", async (req, res) => {
       .from("payments")
       .update({
         status: "PAID",
+        txHash: receipt.hash,
       })
       .eq("memo", memo);
 

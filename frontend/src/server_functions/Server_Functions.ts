@@ -144,8 +144,10 @@ export const register = async (param: {
 export const create_payment = async (
   id: string,
   params: {
-    wallet_address: string;
+    evm_wallet_address: string;
+    stellar_wallet_address?: string;
     token_amount: number;
+    gateway: "STELLAR" | "EVM";
   },
 ) => {
   const paymentObject = await axios.post(
@@ -157,7 +159,8 @@ export const create_payment = async (
 export const confirm_purchase = async (
   id: string,
   params: {
-    wallet_address: string;
+    evm_wallet_address: string;
+    stellar_wallet_address?: string;
     hash: string;
     memo: string;
   },

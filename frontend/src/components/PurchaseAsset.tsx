@@ -9,7 +9,7 @@ import {
   create_payment,
 } from "../server_functions/Server_Functions";
 import { useSendXLM } from "../hooks/useSendXlm";
-import { useActiveStellarAccount } from "../Zustand/Store";
+import { useActiveEVMAccount, useActiveStellarAccount } from "../Zustand/Store";
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
 
@@ -57,13 +57,13 @@ export default function PurchaseAsset({
         sendXLM(
           account.address,
           "GB6LYIAOJOLIADDQCLPRTXWYMPYBQZCR57BTKQ35ZEKZDRK6K5H25DAW",
-          "10",
-          "djddhdy",
+          ethPrice.toString(),
+          currentMemo,
         ).then((res) => {
           if (res.successful) {
-            alert("Payment Successful");
+            ConfirmPayment(res.hash);
           } else {
-            alert("Payment UnSuccessful");
+            alert("Purchase UnSuccessful");
           }
         });
       } else {
@@ -90,8 +90,10 @@ export default function PurchaseAsset({
     mutationKey: ["create_payment", asset_id],
     mutationFn: () =>
       create_payment(asset_id, {
-        wallet_address: activeAccount.address!,
+        evm_wallet_address: activeAccount.address!,
+        stellar_wallet_address: account.address,
         token_amount: assetPurchaseAmount,
+        gateway: selectedOption === "Stellar" ? "STELLAR" : "EVM",
       }),
   });
 
@@ -103,7 +105,8 @@ export default function PurchaseAsset({
     mutationKey: ["confirm_payments", asset_id],
     mutationFn: (hash: string) =>
       confirm_purchase(asset_id, {
-        wallet_address: activeAccount.address!,
+        evm_wallet_address: activeAccount.address!,
+        stellar_wallet_address: account.address,
         hash,
         memo: currentMemo,
       }),

@@ -2,11 +2,17 @@ import { modal } from "@reown/appkit/react";
 import { setAllowed } from "@stellar/freighter-api";
 import { useActiveEVMAccount, useActiveStellarAccount } from "../Zustand/Store";
 import { useState } from "react";
+import { useStellarConnection } from "../hooks/useWalletConnect";
 
 export default function ConnectWallet() {
   const [open, setOpen] = useState(false);
   const EvmAccount = useActiveEVMAccount((state) => state.accout);
   const StellerAccount = useActiveStellarAccount((state) => state.accout);
+  const { getStellarConnection } = useStellarConnection();
+  const handleStellarConnect = async () => {
+    await setAllowed();
+    await getStellarConnection();
+  };
   return (
     <>
       <button
@@ -32,7 +38,7 @@ export default function ConnectWallet() {
                 ? `Connected: ${EvmAccount.address.slice(0, 6)}...${EvmAccount.address.slice(-4)}`
                 : "EVM Wallet"}
             </button>
-            <button onClick={setAllowed}>
+            <button onClick={handleStellarConnect}>
               {" "}
               {StellerAccount.address
                 ? `Connected: ${StellerAccount.address.slice(0, 6)}...${StellerAccount.address.slice(-4)}`
