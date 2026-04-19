@@ -113,8 +113,16 @@ export default function PurchaseAsset({
   });
 
   const handleCreatePayment = useCallback(() => {
+    if (selectedOption === "Evm" && !activeAccount.address) {
+      alert("Please connect your EVM wallet");
+      return;
+    }
+    if (selectedOption === "Stellar" && !account.address) {
+      alert("Please connect your Stellar wallet");
+      return;
+    }
     CreatePayment();
-  }, []);
+  }, [selectedOption, activeAccount.address, account.address]);
 
   useEffect(() => {
     if (createdPaymentData) {
