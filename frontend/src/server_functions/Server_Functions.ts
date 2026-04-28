@@ -1,7 +1,10 @@
 import axios from "axios";
 
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT;
-
+export const GetUserInfo = async (uid: string) => {
+  const userinfo = await axios.get(`${API_ENDPOINT}/api/user/${uid}`);
+  return userinfo;
+};
 export const getUser = async (address: string) => {
   const user = await axios.get(
     `${API_ENDPOINT}/api/auth/user/${address.toLowerCase()}`,
@@ -106,39 +109,36 @@ export const register = async (param: {
     city: string;
     state: string;
   };
-  propertyDetails?: string;
-  images?: File[] | null;
+  propertyDetails: File[];
+  images: File[];
 }) => {
   const formData = new FormData();
-  let imageLink: string = "";
-  if (param.images) {
-    formData.append("image", param.images[0]);
-    console.log(formData);
-    const key = "46794aea07a79f36db81f3046adc76b3";
-    const res = await axios.post(
-      `https://api.imgbb.com/1/upload?key=${key}`,
-      formData,
-    );
-    console.log(res);
-    imageLink = res.data.data.url;
+
+  formData.append("name", param.name);
+  formData.append("description", param.description);
+  formData.append("estimatedValue", param.estimatedValue.toString());
+  formData.append("ownerWallet", param.ownerWallet);
+
+  if (param.category) formData.append("category", param.category);
+
+  // Send location as individual fields or a clean string
+  if (param.location) {
+    formData.append("location[address]", param.location.address);
+    formData.append("location[city]", param.location.city);
+    formData.append("location[state]", param.location.state);
   }
 
-  const user = await axios.post(`${API_ENDPOINT}/api/assets/register`, {
-    name: param.name,
-    description: param.description,
-    estimatedValue: param.estimatedValue,
-    ownerWallet: param.ownerWallet,
-    category: param.category,
-    location: {
-      address: param.location?.address,
-      city: param.location?.city,
-      state: param.location?.state,
-    },
-    propertyDetails: param.propertyDetails,
-    images: [imageLink],
+  // Use brackets for arrays to help backend parsers
+  param.propertyDetails.forEach((file) => {
+    formData.append("propertyDetails", file);
   });
-  console.log(imageLink);
-  return user;
+
+  param.images.forEach((file) => {
+    formData.append("images", file);
+  });
+
+  return axios.post(`${API_ENDPOINT}/api/assets/register`, formData);
+  // Note: Axios automatically sets the multipart header when it sees FormData
 };
 
 export const create_payment = async (

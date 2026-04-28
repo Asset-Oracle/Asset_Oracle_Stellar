@@ -16,10 +16,6 @@ export const useEvmConnection = () => {
     setActiveAccount(address);
   };
 
-  useEffect(() => {
-    getEvmConnection();
-  }, [account.address]);
-
   return { getEvmConnection };
 };
 

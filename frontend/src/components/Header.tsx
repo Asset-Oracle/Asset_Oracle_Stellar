@@ -4,20 +4,16 @@ import { AppKitButton } from "@reown/appkit/react";
 import { useNavigate, useLocation } from "react-router";
 import AuthWrapper from "../pages/AuthWrapper";
 import SignIn from "./SignIn";
-import { useActiveStellarAccount, useAuth } from "../Zustand/Store";
-import ConnectWallet from "./ConnectWallet";
-import { useSendXLM } from "../hooks/useSendXlm";
+import { useActiveStellarAccount, useAuth, useSideBar } from "../Zustand/Store";
+import Stellar_Connection_Button from "./Stellar_Connection_Button";
 
-interface HeaderProps {
-  sideBarOut: boolean;
-  setSideBarOut: (value: boolean) => void;
-}
-
-function Header({ sideBarOut, setSideBarOut }: HeaderProps) {
+function Header() {
   const nav = useNavigate();
   const location = useLocation();
   const [loggedIn, setLoggedIn] = useState(false);
   const isAuthenticated = useAuth((state) => state.isAuthenticated);
+  const sideBarOut = useSideBar((state) => state.sideBarOut);
+  const setSideBarOut = useSideBar((state) => state.setSideBarOut);
   const account = useActiveStellarAccount((state) => state.accout);
   return (
     <header className="fixed top-0 left-0 w-full bg-white shadow-sm z-50">
@@ -75,7 +71,7 @@ function Header({ sideBarOut, setSideBarOut }: HeaderProps) {
 
         <div className="flex gap-5">
           {!isAuthenticated && <SignIn />}
-          {isAuthenticated && <ConnectWallet />}
+          {isAuthenticated && <AppKitButton />}
 
           <>
             <AuthWrapper

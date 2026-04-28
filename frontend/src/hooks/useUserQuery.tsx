@@ -8,6 +8,7 @@ import {
   getUser,
   getUserDashboard,
 } from "../server_functions/Server_Functions";
+import { useActiveEVMAccount } from "../Zustand/Store";
 
 interface UserInfo {
   email: string;
@@ -25,18 +26,16 @@ interface DashboardInfo {
 export const useGetUserInfo = () => {
   const [backendUser, setBackendUser] = useState<UserInfo | null>(null);
   const [dashboardInfo, setDashBoardInfo] = useState<number[] | null>(null);
-  const ActiveAccount = useAppKitAccount();
+  const ActiveAccount = useActiveEVMAccount((state) => state.accout);
   const [allAssets, setAllAssets] = useState<AssetInfo[] | null>(null);
-  const [isNewUser, setIsNewUser] = useState(false);
 
   const fetchLocalUser = () => {
     if (!ActiveAccount?.address) return;
     const user = localStorage.getItem(ActiveAccount.address!.toLowerCase());
     if (user) {
       setBackendUser(JSON.parse(user));
-      setIsNewUser(false);
     } else {
-      setIsNewUser(true);
+      setBackendUser(null);
     }
   };
 
@@ -60,7 +59,9 @@ export const useGetUserInfo = () => {
   });
 
   useEffect(() => {
-    if (!ActiveAccount.address) return;
+    if (!ActiveAccount.address) {
+      return;
+    }
     if (userInfo && userInfo.data.user) {
       console.log(userInfo);
       const user = localStorage.setItem(
@@ -93,6 +94,5 @@ export const useGetUserInfo = () => {
     allAssets,
     userInfoError,
     RefetchUserData,
-    isNewUser,
   };
 };

@@ -3,6 +3,23 @@ const router = express.Router();
 const { supabase } = require("../config/supabase");
 
 // GET /api/user/dashboard/:walletAddress - Get user's complete dashboard
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ error: "id requires" });
+  }
+
+  const { data: userData, error: userError } = await supabase
+    .from("users")
+    .select("*")
+    .eq("auth_user_id", id)
+    .single();
+
+  if (userError) throw userError;
+  res.status(200).json({
+    data: userData,
+  });
+});
 router.get("/dashboard/:walletAddress", async (req, res) => {
   try {
     const { walletAddress } = req.params;

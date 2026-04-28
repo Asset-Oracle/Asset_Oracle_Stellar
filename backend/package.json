@@ -26,7 +26,7 @@
     "ethers": "^6.16.0",
     "express": "^4.21.2",
     "groq-sdk": "^0.8.0",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^2.1.1"
   },
   "devDependencies": {
     "@types/uniqid": "^5.3.4",

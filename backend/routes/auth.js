@@ -14,15 +14,13 @@ router.post("/register", async (req, res) => {
     console.log(`📝 Registering user: ${email}`);
 
     // Create auth user with Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: email,
-      password: password,
-      options: {
-        data: {
-          name: name || "",
-        },
-      },
-    });
+    const { data: authData, error: authError } =
+      await supabase.auth.admin.createUser({
+        email: email,
+        password: password,
+        email_confirm: true,
+        user_metadata: { name },
+      });
 
     if (authError) throw authError;
 
@@ -208,6 +206,7 @@ router.post("/link-wallet", async (req, res) => {
   try {
     const { walletAddress, userId, email } = req.body;
 
+    console.log(walletAddress, email);
     if (!walletAddress) {
       return res.status(400).json({ error: "Wallet address is required" });
     }
@@ -236,8 +235,10 @@ router.post("/link-wallet", async (req, res) => {
 
     if (userId) {
       query = query.eq("id", userId);
+      console.log("user");
     } else {
       query = query.eq("email", email);
+      console.log("email");
     }
 
     const { data: user, error: fetchError } = await query.single();

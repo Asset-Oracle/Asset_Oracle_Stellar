@@ -23,14 +23,13 @@ import {
 function App() {
   const [sideBarOut, setSideBarOut] = useState(false);
   const setAuth = useAuth((state) => state.setAuth);
-  const getUser = useGetUser();
+  const { getUser } = useGetUser();
   const { getEvmConnection } = useEvmConnection();
   const { getStellarConnection } = useStellarConnection();
   useEffect(() => {
     getUser();
   }, [setAuth]);
   useEffect(() => {
-    getEvmConnection();
     getStellarConnection();
   }, []);
 
@@ -47,7 +46,7 @@ function App() {
       path: "/",
       element: (
         <>
-          <Header sideBarOut={sideBarOut} setSideBarOut={setSideBarOut} />
+          <Header />
           <Home />,
         </>
       ),
@@ -59,7 +58,7 @@ function App() {
           <AuthWrapper
             children={
               <>
-                <Header sideBarOut={sideBarOut} setSideBarOut={setSideBarOut} />
+                <Header />
                 <Dashboard sideBarOut={sideBarOut} />
               </>
             }
@@ -74,7 +73,7 @@ function App() {
         <AuthWrapper
           children={
             <>
-              <Header sideBarOut={sideBarOut} setSideBarOut={setSideBarOut} />
+              <Header />
               <MarketPlace sideBarOut={sideBarOut} />
             </>
           }
@@ -87,7 +86,7 @@ function App() {
         <AuthWrapper
           children={
             <>
-              <Header sideBarOut={sideBarOut} setSideBarOut={setSideBarOut} />
+              <Header />
               <Settings sideBarOut={sideBarOut} />
             </>
           }
@@ -100,7 +99,7 @@ function App() {
         <AuthWrapper
           children={
             <>
-              <Header sideBarOut={sideBarOut} setSideBarOut={setSideBarOut} />
+              <Header />
               <RegisterAsset sideBarOut={sideBarOut} />
             </>
           }
@@ -113,7 +112,7 @@ function App() {
         <AuthWrapper
           children={
             <>
-              <Header sideBarOut={sideBarOut} setSideBarOut={setSideBarOut} />
+              <Header />
               <SDK sideBarOut={sideBarOut} />
             </>
           }
@@ -126,7 +125,7 @@ function App() {
         <AuthWrapper
           children={
             <>
-              <Header sideBarOut={sideBarOut} setSideBarOut={setSideBarOut} />
+              <Header />
               <Portfolio sideBarOut={sideBarOut} />
             </>
           }
@@ -139,7 +138,7 @@ function App() {
         <AuthWrapper
           children={
             <>
-              <Header sideBarOut={sideBarOut} setSideBarOut={setSideBarOut} />
+              <Header />
               <Asset sideBarOut={sideBarOut} />
             </>
           }
@@ -150,7 +149,9 @@ function App() {
 
   return (
     <>
-      <RouterProvider router={router} />
+      <div>
+        <RouterProvider router={router} />
+      </div>
     </>
   );
 }

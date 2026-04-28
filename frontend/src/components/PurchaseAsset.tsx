@@ -51,33 +51,17 @@ export default function PurchaseAsset({
     (ethPrice: number) => {
       if (assetPurchaseAmount <= 0) return;
       console.log("Purchasing");
-      if (selectedOption.toLowerCase() === "stellar") {
-        // Handle Stellar purchase logic here
-        console.log("Stellar purchase selected");
-        sendXLM(
-          account.address,
-          "GB6LYIAOJOLIADDQCLPRTXWYMPYBQZCR57BTKQ35ZEKZDRK6K5H25DAW",
-          ethPrice.toString(),
-          currentMemo,
-        ).then((res) => {
-          if (res.successful) {
-            ConfirmPayment(res.hash);
-          } else {
-            alert("Purchase UnSuccessful");
-          }
-        });
-      } else {
-        // Handle EVM purchase logic here
-        console.log("EVM purchase selected");
-        Purchase({
-          address: CONTRACT_ADDRESS.toLowerCase() as `0x${string}`,
-          abi: tokenCreatorAbi.abi,
-          args: [1, parseEther(assetPurchaseAmount.toString())],
-          functionName: "purchaseToken",
-          value: BigInt(ethPrice),
-          gas: 8_000_000n,
-        });
-      }
+
+      // Handle EVM purchase logic here
+      console.log("EVM purchase selected");
+      Purchase({
+        address: CONTRACT_ADDRESS.toLowerCase() as `0x${string}`,
+        abi: tokenCreatorAbi.abi,
+        args: [1, parseEther(assetPurchaseAmount.toString())],
+        functionName: "purchaseToken",
+        value: BigInt(ethPrice),
+        gas: 8_000_000n,
+      });
     },
     [assetPurchaseAmount, selectedOption],
   );
@@ -93,7 +77,7 @@ export default function PurchaseAsset({
         evm_wallet_address: activeAccount.address!,
         stellar_wallet_address: account.address,
         token_amount: assetPurchaseAmount,
-        gateway: selectedOption === "Stellar" ? "STELLAR" : "EVM",
+        gateway: "EVM",
       }),
   });
 
@@ -171,35 +155,7 @@ export default function PurchaseAsset({
                 setAssetPurchaseAmount(Number(e.target.value));
               }}
             />
-            <div className="mt-5 text-white!">
-              <h2>Select Payment Method</h2>
 
-              <label>
-                <input
-                  type="radio"
-                  name="payment"
-                  value="Evm"
-                  checked={selectedOption === "Evm"}
-                  onChange={(e) => setSelectedOption(e.target.value)}
-                />
-                EVM
-              </label>
-
-              <br />
-
-              <label>
-                <input
-                  type="radio"
-                  name="payment"
-                  value="Stellar"
-                  checked={selectedOption === "Stellar"}
-                  onChange={(e) => setSelectedOption(e.target.value)}
-                />
-                Stellar
-              </label>
-
-              <p>Selected: {selectedOption}</p>
-            </div>
             <div className="flex gap-10 items-center justify-center">
               <button
                 onClick={() => setReadyToPurchase(false)}

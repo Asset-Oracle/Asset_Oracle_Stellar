@@ -4,6 +4,7 @@ const { supabase } = require("../config/supabase");
 const axios = require("axios");
 const ethers = require("ethers");
 const uniqid = require("uniqid");
+const multer = require("multer");
 const {
   TokenizeAsset,
   purchaseAsset,
@@ -14,6 +15,11 @@ const {
 const contractAddress = process.env.CONTRACT_ADDRESS;
 const stellar_wallet = process.env.STELLAR_WALLET;
 
+const upload = multer();
+const assetUpload = upload.fields([
+  { name: "propertyDetails", maxCount: 10 },
+  { name: "images", maxCount: 10 },
+]);
 // Test endpoint to check Supabase connection
 router.get("/test-db", async (req, res) => {
   try {
@@ -194,18 +200,50 @@ router.get("/:id", async (req, res) => {
 });
 
 // POST /api/assets/register - Register new asset with auto-verification and image upload
-router.post("/register", async (req, res) => {
+router.post("/register", assetUpload, async (req, res) => {
+  //try {
+
+  const body = req.body;
+  const files = req.files;
+
+  const { name, description, estimatedValue, ownerWallet, category, location } =
+    body;
+
+  console.log("Form Data:", name, location);
   try {
-    const {
-      name,
-      description,
-      estimatedValue,
-      ownerWallet,
-      category = "REAL_ESTATE",
-      location,
-      propertyDetails,
-      images = [], // Can accept URLs or base64 images
-    } = req.body;
+    const uploadToStorage = async (fileArray, bucketName) => {
+      const urls = [];
+
+      for (const file of fileArray) {
+        const fileExt = file.originalname.split(".").pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${ownerWallet}/${name}/${fileName}`; // Organize by user wallet
+
+        const { data, error } = await supabase.storage
+          .from("asset-files")
+          .upload(filePath, file.buffer, {
+            contentType: file.mimetype,
+            upsert: true,
+          });
+
+        if (error) throw error;
+
+        // Get the Public URL
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+
+        urls.push(publicUrl);
+      }
+      return urls;
+    };
+    const imageUrls = await uploadToStorage(files.images || [], "asset-files");
+    const docUrls = await uploadToStorage(
+      files.propertyDetails || [],
+      "asset-documents",
+    );
+    console.log(imageUrls);
+    //console.log("Files:", files);
 
     if (!name || !estimatedValue || !ownerWallet) {
       return res.status(400).json({
@@ -218,8 +256,8 @@ router.post("/register", async (req, res) => {
     // Process images - upload base64 to Supabase Storage if needed
     const processedImages = [];
 
-    for (let i = 0; i < images.length; i++) {
-      const image = images[i];
+    for (let i = 0; i < imageUrls.length; i++) {
+      const image = imageUrls[i];
 
       // If image is a URL, keep it as is
       if (
@@ -355,7 +393,7 @@ router.post("/register", async (req, res) => {
 
     // Prepare blockchain data
     const blockchainData = {
-      network: "hedera-testnet",
+      network: "bnb-testnet",
       verified_at: new Date().toISOString(),
       document_hash: require("crypto")
         .createHash("sha256")
@@ -406,8 +444,8 @@ router.post("/register", async (req, res) => {
           owner_wallet: ownerWallet,
           category,
           location: location || {},
-          property_details: propertyDetails || {},
-          images: processedImages, // Use processed images
+          property_details: {},
+          images: imageUrls, // Use processed images
           verification_status,
           blockchain_data: blockchainData,
           ai_analysis: aiAnalysisResult,

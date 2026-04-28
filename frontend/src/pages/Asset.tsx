@@ -10,7 +10,7 @@ import {
   getAsset,
   tokenizeAsset,
 } from "../server_functions/Server_Functions";
-import { useAppKitAccount } from "@reown/appkit/react";
+import { modal, useAppKitAccount } from "@reown/appkit/react";
 import {
   useSignMessage,
   useWaitForTransactionReceipt,
@@ -19,6 +19,7 @@ import {
 import { encodeAbiParameters, keccak256, parseEther, toBytes } from "viem";
 import { tokenCreatorAbi } from "../ABI/abi";
 import PurchaseAsset from "../components/PurchaseAsset";
+import { useActiveEVMAccount } from "../Zustand/Store";
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
 
@@ -34,8 +35,15 @@ function Asset({ sideBarOut }: DashboardProps) {
   const [documentation, setDocumentation] = useState<File[]>([]);
   const [assetInfo, setAssetInfo] = useState<AssetInfo | null>(null);
   const [readyToPurchase, setReadyToPurchase] = useState(false);
+  const account = useAppKitAccount();
+  const [isSigningTx, setIsSigningTx] = useState(false);
+  const [currentImage, setCurrentImage] = useState(assetInfo?.images[0]);
 
-  const activeAccount = useAppKitAccount();
+  useEffect(() => {
+    console.log(currentImage);
+  }, [currentImage]);
+
+  const activeAccount = useActiveEVMAccount((state) => state.accout);
 
   const { data, error, refetch } = useQuery({
     queryKey: ["getAsset", id],
@@ -136,7 +144,9 @@ function Asset({ sideBarOut }: DashboardProps) {
   useEffect(() => {
     if (data) {
       setAssetInfo(data.data.data);
+      setCurrentImage(data.data.data.images[0]);
     }
+
     //setAssetInfo(asset || null); // Set the asset info or null if not found
   }, [data]);
 
@@ -169,16 +179,33 @@ function Asset({ sideBarOut }: DashboardProps) {
 
   useEffect(() => {
     if (signatureError) {
-      console.log(signatureError);
-      alert("error signing message");
+      const msg = signatureError.message.split(" ");
+      if (
+        msg[0].toLowerCase() === "connector" &&
+        msg[1].toLowerCase() === "not"
+      ) {
+        alert("Connect Wallet");
+        console.log(signatureError.message);
+        modal?.open();
+        setIsSigningTx(true);
+      } else {
+        alert("error signing message");
+        setIsSigningTx(false);
+      }
     }
     if (user_signature) {
       console.log(user_signature);
+      setIsSigningTx(false);
       alert("message signed successfully");
     }
   }, [user_signature, signatureError, activeAccount.address]);
 
-  const handle_asset_purchase = useCallback(() => {}, [activeAccount.address]);
+  useEffect(() => {
+    if (account.address && isSigningTx) {
+      handleSignMessage();
+    }
+  }, [isSigningTx, account.address]);
+
   const page3 = () => {
     return (
       <>
@@ -288,7 +315,7 @@ function Asset({ sideBarOut }: DashboardProps) {
   return (
     <>
       <div className="flex">
-        <MenuBar sideBarOut={sideBarOut} />
+        <MenuBar />
         <div className="text-black h-full w-[100%] lg:ml-[300px] py-10">
           <div className=" text-black pt-25 flex flex-col items-start justify-center ml-10">
             <div className="flex flex-col ">
@@ -308,13 +335,26 @@ function Asset({ sideBarOut }: DashboardProps) {
                   <div className="border border-[#e2e8f0] shadow-md p-5 rounded-md">
                     <img
                       src={
-                        assetInfo.images && assetInfo.images.length > 0
-                          ? assetInfo.images[0].url
+                        currentImage
+                          ? currentImage
                           : "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800"
                       }
                       alt={assetInfo?.name || "Asset"}
-                      className="w-full h-[70%] object-cover rounded-lg mb-4"
+                      className="w-full h-[450px] object-cover rounded-lg mb-4"
                     />
+                    <div className="flex h-[200px] gap-5 my-5 w-full max-w-full overflow-x-auto">
+                      {assetInfo.images.map((src, index) => (
+                        <img
+                          onClick={() => {
+                            setCurrentImage(src);
+                          }}
+                          key={index}
+                          src={src}
+                          alt={index.toString()}
+                          className="rounded-md"
+                        />
+                      ))}
+                    </div>
                     <div className="flex justify-between items-center">
                       <div>
                         <h2 className="text-md font-semibold">
@@ -394,7 +434,8 @@ function Asset({ sideBarOut }: DashboardProps) {
                     </div>
                   </div>
                   {assetInfo.verification_status !== "TOKENIZED" &&
-                    activeAccount.address === assetInfo.owner_wallet && (
+                    activeAccount.address.toLowerCase() ===
+                      assetInfo.owner_wallet.toLowerCase() && (
                       <div className="border border-[#e2e8f0] shadow-md p-5 rounded-md mt-10">
                         {page4()}
                       </div>

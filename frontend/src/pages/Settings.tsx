@@ -1,6 +1,11 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Header from "../components/Header";
 import MenuBar from "../components/MenuBar";
+import { useActiveEVMAccount, useAuth } from "../Zustand/Store";
+import { useMutation } from "@tanstack/react-query";
+import { Link_wallet } from "../server_functions/Auth_Functions";
+import { useGetUser } from "../hooks/useUser";
+import { supabase } from "@/lib/supabase/client";
 
 interface DashboardProps {
   sideBarOut: boolean;
@@ -8,11 +13,62 @@ interface DashboardProps {
 function Settings({ sideBarOut }: DashboardProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const ActiveAccount = useAuth((state) => state.activeAccount);
+  const ActiveEvmAccount = useActiveEVMAccount((state) => state.accout);
+  const { getUserInfo } = useGetUser();
+  useEffect(() => {
+    if (!ActiveAccount) return;
+    setName(ActiveAccount.username);
+    setEmail(ActiveAccount.email);
+    if (ActiveEvmAccount) {
+      setAddress(ActiveEvmAccount.address);
+    }
+  }, [ActiveAccount, ActiveEvmAccount]);
+
+  const {
+    data: LinkedData,
+    error: LinkedError,
+    mutate: LinkWallet,
+  } = useMutation({
+    mutationKey: ["link_wallet"],
+    mutationFn: () =>
+      Link_wallet({
+        walletAddress: address,
+        userId: "",
+        email: ActiveAccount.email,
+      }),
+  });
+
+  const handleLinkWallet = useCallback(() => {
+    if (!ActiveAccount.email || !address) {
+      alert("Email and Wallet Address is Requierd");
+      return;
+    }
+    console.log(address, ActiveAccount.email);
+    LinkWallet();
+  }, [ActiveAccount.email, address]);
+
+  useEffect(() => {
+    if (LinkedData) {
+      console.log("LinkedData : ", LinkedData);
+      alert("Wallet Succefully Linked");
+      getUserInfo();
+    }
+    if (LinkedError) {
+      alert("Error Linking Wallet");
+    }
+  }, [LinkedData, LinkedError]);
+
+  const handleLogout = async () => {
+    const data = await supabase.auth.signOut();
+    window.location.reload();
+  };
 
   return (
     <>
       <div className="flex">
-        <MenuBar sideBarOut={sideBarOut} />
+        <MenuBar />
         <div className="h-full w-[100%] lg:ml-[300px] py-10">
           <div className=" text-black pt-25 flex flex-col items-start justify-center ml-10">
             <div className="flex flex-col ">
@@ -69,8 +125,14 @@ function Settings({ sideBarOut }: DashboardProps) {
                   type="text"
                   placeholder="Ox"
                   className="border border-gray-500 rounded-md w-full px-2 py-1"
+                  value={address}
+                  onChange={(e) => {
+                    setAddress(e.target.value);
+                  }}
                 />
-                <button className="mt-5">Save Wallet</button>
+                <button onClick={handleLinkWallet} className="mt-5">
+                  Save Wallet
+                </button>
               </div>
             </div>
           </div>
@@ -104,7 +166,10 @@ function Settings({ sideBarOut }: DashboardProps) {
                 </div>
                 <input type="checkbox" />
               </div>
-              <button className="mt-7">Save Preferences</button>
+              <div className="flex flex-col gap-5">
+                <button className="mt-7">Save Preferences</button>
+                <button onClick={handleLogout}>Logout</button>
+              </div>
             </div>
           </div>
         </div>

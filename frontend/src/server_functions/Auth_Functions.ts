@@ -21,3 +21,15 @@ export const Register = async (params: {
   );
   return created_user;
 };
+
+export const Link_wallet = async (params: {
+  walletAddress: string;
+  userId: string;
+  email: string;
+}) => {
+  const Linked_Address = await axios.post(
+    `${API_ENDPOINT}/api/auth/link-wallet`,
+    params,
+  );
+  return Linked_Address;
+};

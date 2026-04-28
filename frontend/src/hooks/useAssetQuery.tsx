@@ -31,7 +31,7 @@ export interface AssetInfo {
   description: string;
   estimated_value: number;
   id: string;
-  images: { url: string }[];
+  images: string[];
   location: { city: string; state: string; address: string };
   name: string;
   owner_wallet: string;

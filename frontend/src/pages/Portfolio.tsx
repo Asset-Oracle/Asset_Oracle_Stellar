@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import MenuBar from "../components/MenuBar";
 import { useNavigate } from "react-router";
-import { useGetUserInfo } from "../hooks/useUserQuery";
 import MarketPlaceItemContainer from "../components/marketPlaceItemContainer";
 import AssetOracleSnippet from "../components/JsCodeSnippet";
 import InstallationSnippet from "../components/Installation";
@@ -12,9 +11,6 @@ interface DashboardProps {
   sideBarOut: boolean;
 }
 function Portfolio({ sideBarOut }: DashboardProps) {
-  const { backendUser } = useGetUserInfo();
-  const { dashboardInfo, allAssets } = useGetUserInfo();
-
   const [selectedOption, setSelectedOption] = useState(0);
 
   const navigate = useNavigate();
@@ -43,7 +39,7 @@ function Portfolio({ sideBarOut }: DashboardProps) {
   return (
     <>
       <div className="flex">
-        <MenuBar sideBarOut={sideBarOut} />
+        <MenuBar />
         <div className="h-full w-[100%] lg:ml-[300px] py-10">
           <div className=" text-black pt-25 flex flex-col items-start justify-center ml-10">
             <div className="flex flex-col ">

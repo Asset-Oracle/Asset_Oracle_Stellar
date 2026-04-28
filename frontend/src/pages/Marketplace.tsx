@@ -49,7 +49,7 @@ function MarketPlace({ sideBarOut }: DashboardProps) {
   return (
     <>
       <div className="flex">
-        <MenuBar sideBarOut={sideBarOut} />
+        <MenuBar />
         <div className="text-black h-full w-[100%] lg:ml-[300px] py-10">
           <div className=" text-black pt-25 flex flex-col items-start justify-center ml-10">
             <div className="flex flex-col ">

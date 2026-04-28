@@ -4,12 +4,13 @@ import MenuBar from "../components/MenuBar";
 import { useMutation } from "@tanstack/react-query";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { register } from "../server_functions/Server_Functions";
+import { useActiveEVMAccount } from "../Zustand/Store";
 
 interface DashboardProps {
   sideBarOut: boolean;
 }
 function RegisterAsset({ sideBarOut }: DashboardProps) {
-  const activeAccount = useAppKitAccount();
+  const activeAccount = useActiveEVMAccount((state) => state.accout);
 
   const itemList = [
     {
@@ -142,8 +143,8 @@ function RegisterAsset({ sideBarOut }: DashboardProps) {
   const [locationState, setLocationState] = useState("");
   const [valuation, setValuation] = useState("");
 
-  const [assetImage, setAssetImage] = useState<File[] | null>(null);
-  const [documentation, setDocumentation] = useState<File[] | null>(null);
+  const [assetImage, setAssetImage] = useState<File[]>([]);
+  const [documentation, setDocumentation] = useState<File[]>([]);
   const [popup, setPopup] = useState(false);
 
   const page1 = () => {
@@ -254,9 +255,10 @@ function RegisterAsset({ sideBarOut }: DashboardProps) {
                 type="file"
                 accept="image/*"
                 className="hidden"
+                multiple
                 onChange={(e) => {
                   setAssetImage(
-                    e.target.files ? Array.from(e.target.files) : null,
+                    e.target.files ? Array.from(e.target.files) : [],
                   );
                 }}
               />
@@ -298,7 +300,7 @@ function RegisterAsset({ sideBarOut }: DashboardProps) {
                   multiple
                   onChange={(e) => {
                     const files = e.target.files;
-                    setDocumentation(files ? Array.from(files) : null);
+                    setDocumentation(files ? Array.from(files) : []);
                   }}
                 />
               </label>
@@ -385,6 +387,7 @@ function RegisterAsset({ sideBarOut }: DashboardProps) {
         ownerWallet: activeAccount?.address!,
         category: currentCategory,
         location: transformLocation(),
+        propertyDetails: documentation,
         images: assetImage,
       }),
   });
@@ -409,6 +412,10 @@ function RegisterAsset({ sideBarOut }: DashboardProps) {
     if (currentPage < pages.current.length - 1) {
       setCurrentPage((prev) => prev + 1);
     } else {
+      if (!activeAccount.address) {
+        alert("Wallet Not Linked, Goto Settings");
+        return;
+      }
       mutate();
       console.log("Mutating");
     }
@@ -448,7 +455,7 @@ function RegisterAsset({ sideBarOut }: DashboardProps) {
   return (
     <>
       <div className="flex">
-        <MenuBar sideBarOut={sideBarOut} />
+        <MenuBar />
         <div className="h-full w-[100%] lg:ml-[300px] py-10">
           <div className=" text-black pt-25 flex flex-col items-start justify-center ml-10">
             <div className="flex flex-col ">

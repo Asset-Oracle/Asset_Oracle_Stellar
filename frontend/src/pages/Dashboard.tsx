@@ -4,6 +4,7 @@ import MenuBar from "../components/MenuBar";
 import { useNavigate } from "react-router";
 import { useGetUserInfo } from "../hooks/useUserQuery";
 import MarketPlaceItemContainer from "../components/marketPlaceItemContainer";
+import { useActiveEVMAccount } from "../Zustand/Store";
 
 interface DashboardProps {
   sideBarOut: boolean;
@@ -11,19 +12,7 @@ interface DashboardProps {
 function Dashboard({ sideBarOut }: DashboardProps) {
   const { backendUser } = useGetUserInfo();
   const { dashboardInfo, allAssets } = useGetUserInfo();
-  useEffect(() => {
-    const handleClick = () => {
-      if (sideBarOut) {
-        console.log("body clicked");
-      }
-    };
-
-    document.body.addEventListener("click", handleClick);
-
-    return () => {
-      document.body.removeEventListener("click", handleClick);
-    };
-  }, [sideBarOut]);
+  const ActiveAccount = useActiveEVMAccount((state) => state.accout);
   const navigate = useNavigate();
   const investments = [
     {
@@ -50,10 +39,16 @@ function Dashboard({ sideBarOut }: DashboardProps) {
   return (
     <>
       <div className="flex">
-        <MenuBar sideBarOut={sideBarOut} />
+        <MenuBar />
         <div className="h-full w-[100%] lg:ml-[300px] py-10">
           <div className=" text-black pt-25 flex flex-col items-start justify-center ml-10">
             <div className="flex flex-col ">
+              {!ActiveAccount.address && (
+                <div className="absolute left-[50%] top-[10%] translate-x-[-50%] border-2 rounded-md bg-orange-500 border-red-500 px-2 py-3">
+                  <p>Note : Your EVM Wallet Is Not Linked, Go to settings</p>
+                </div>
+              )}
+
               <h1 className="font-bold !text-4xl">
                 Welcome back {backendUser?.name}
               </h1>

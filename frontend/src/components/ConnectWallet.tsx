@@ -29,15 +29,6 @@ export default function ConnectWallet() {
         <div className="fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] bg-[#eef2ff] p-6 rounded-md shadow-lg w-[60%] h-auto flex flex-col gap-5 justify-center items-center min-h-[60%]">
           <h2>Choose a Wallet</h2>
           <div className="flex flex-col gap-7 justify-center items-center">
-            <button
-              onClick={() => {
-                modal?.open();
-              }}
-            >
-              {EvmAccount.address
-                ? `Connected: ${EvmAccount.address.slice(0, 6)}...${EvmAccount.address.slice(-4)}`
-                : "EVM Wallet"}
-            </button>
             <button onClick={handleStellarConnect}>
               {" "}
               {StellerAccount.address
