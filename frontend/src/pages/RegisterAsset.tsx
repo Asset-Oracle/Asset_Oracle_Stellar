@@ -81,7 +81,7 @@ function RegisterAsset({ sideBarOut }: DashboardProps) {
         </svg>
       ),
 
-      name: "Art & Collectibles",
+      name: "Companies",
     },
     {
       svg: (

@@ -21,7 +21,7 @@ function SearchBar({
     "All Assets",
     "Real Estates",
     "Precious Metals",
-    "Art & Collectibles",
+    "Companies",
     "Luxury Assets",
     "Commodities",
   ];

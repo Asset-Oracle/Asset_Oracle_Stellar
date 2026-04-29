@@ -48,16 +48,16 @@ export default function PurchaseAsset({
     // timeout: 60_000,      // Optional: timeout in ms
   });
   const handleassetPurchase = useCallback(
-    (ethPrice: number) => {
+    (token_number: number, ethPrice: number) => {
       if (assetPurchaseAmount <= 0) return;
       console.log("Purchasing");
 
       // Handle EVM purchase logic here
-      console.log("EVM purchase selected");
+      console.log("EVM purchase selected", assetPurchaseAmount);
       Purchase({
         address: CONTRACT_ADDRESS.toLowerCase() as `0x${string}`,
         abi: tokenCreatorAbi.abi,
-        args: [1, parseEther(assetPurchaseAmount.toString())],
+        args: [token_number, parseEther(assetPurchaseAmount.toString())],
         functionName: "purchaseToken",
         value: BigInt(ethPrice),
         gas: 8_000_000n,
@@ -112,7 +112,10 @@ export default function PurchaseAsset({
     if (createdPaymentData) {
       console.log("data : ", createdPaymentData);
       setCurrentMemo(createdPaymentData.data.data.memo);
-      handleassetPurchase(createdPaymentData.data.data.amount);
+      handleassetPurchase(
+        createdPaymentData.data.data.token_number,
+        createdPaymentData.data.data.amount,
+      );
     }
     if (createdPaymentError) {
       console.log("error : ", createdPaymentError);

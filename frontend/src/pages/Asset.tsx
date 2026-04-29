@@ -82,13 +82,12 @@ function Asset({ sideBarOut }: DashboardProps) {
         signature: "",
       },
     ],
-    mutationFn: (sig: string) =>
+    mutationFn: () =>
       tokenizeAsset({
         id: id || "",
         address: activeAccount?.address!,
         tokenSupply: Number(tokenSupply),
         price_per_token: Number(tokenPrice),
-        userSignature: sig,
       }),
   });
 
@@ -101,44 +100,7 @@ function Asset({ sideBarOut }: DashboardProps) {
   const handleSignMessage = useCallback(async () => {
     if (!activeAccount.address) return;
 
-    const now = Math.floor(Date.now() / 1000);
-    const deadline = now + 2 * 60 * 1000; // 2 minutes
-
-    // 1. Encode exactly like Solidity abi.encode
-    console.log(
-      activeAccount.address.toLowerCase() as `0x${string}`,
-      parseEther(tokenSupply.toString()), // ensure BigInt / string
-      isMintable, // isMintable
-      CONTRACT_ADDRESS.toLowerCase() as `0x${string}`,
-    );
-    const packed = encodeAbiParameters(
-      [
-        { type: "address" },
-        { type: "uint256" },
-        { type: "uint256" },
-        { type: "address" },
-      ],
-      [
-        activeAccount.address.toLowerCase() as `0x${string}`,
-        parseEther(tokenSupply.toString()), // ensure BigInt / string
-        parseEther(tokenPrice.toString()),
-        CONTRACT_ADDRESS.toLowerCase() as `0x${string}`,
-      ],
-    );
-    console.log(CONTRACT_ADDRESS);
-
-    // 2. Hash
-    const hash = keccak256(packed);
-
-    // 3. Sign RAW hash (viem will add EIP-191 prefix)
-    const signature = await signMessage({
-      message: { raw: toBytes(hash) },
-    });
-    Tokenize(signature);
-    console.log("User hash:", hash);
-    console.log("User signature:", signature);
-
-    return signature;
+    Tokenize();
   }, [activeAccount.address, tokenSupply, tokenPrice]);
 
   useEffect(() => {

@@ -84,7 +84,6 @@ export const tokenizeAsset = async (data: {
   address: string;
   tokenSupply: number;
   price_per_token: number;
-  userSignature: string;
 }) => {
   const asset = await axios.post(
     `${API_ENDPOINT}/api/assets/${data.id}/tokenize`,
@@ -92,7 +91,6 @@ export const tokenizeAsset = async (data: {
       tokenSupply: data.tokenSupply,
       pricePerToken: data.price_per_token,
       walletAddress: data.address,
-      userSignature: data.userSignature,
     },
   );
   return asset;

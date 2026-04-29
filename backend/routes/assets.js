@@ -551,28 +551,16 @@ router.post("/:id/claim", async (req, res) => {
 // POST /api/assets/:id/tokenize - Tokenize verified asset with Hedera HTS
 router.post("/:id/tokenize", async (req, res) => {
   try {
-    const { tokenSupply, pricePerToken, walletAddress, userSignature } =
-      req.body;
+    const { tokenSupply, pricePerToken, walletAddress } = req.body;
 
-    if (
-      !tokenSupply ||
-      tokenSupply <= 0 ||
-      !pricePerToken ||
-      !walletAddress ||
-      !userSignature
-    ) {
+    if (!tokenSupply || tokenSupply <= 0 || !pricePerToken || !walletAddress) {
       return res.status(400).json({
         error:
-          "Missing required fields: tokenSupply, pricePerToken, walletAddress, isMintable, userSignature",
+          "Missing required fields: tokenSupply, pricePerToken, walletAddress, isMintable",
       });
     }
-    console.log(tokenSupply, walletAddress, pricePerToken, userSignature);
-    const tokenized_data = await TokenizeAsset(
-      tokenSupply,
-      pricePerToken,
-      walletAddress,
-      userSignature,
-    );
+    console.log(tokenSupply, walletAddress, pricePerToken);
+    const tokenized_data = await TokenizeAsset(tokenSupply, walletAddress);
     console.log("Tokenization result: ", tokenized_data);
     const { data: asset, error: fetchError } = await supabase
       .from("assets")
@@ -695,6 +683,7 @@ router.post("/:id/create_payment", async (req, res) => {
     res.status(201).json({
       data: {
         memo: createdPayment.memo,
+        token_number,
         amount: createdPayment.eth_amount,
       },
     });

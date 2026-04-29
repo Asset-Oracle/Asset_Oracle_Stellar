@@ -19,40 +19,12 @@ const provider = new JsonRpcProvider(RPC_URL);
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const wallet = new Wallet(PRIVATE_KEY, provider);
 
-export async function TokenizeAsset(
-  tokenSupply,
-  price_per_token,
-  owner_address,
-  user_signature,
-) {
+export async function TokenizeAsset(tokenSupply, owner_address) {
   const contract = new Contract(contractAddress, tokenCreatorAbi.abi, wallet);
-  const nonce = await contract.get_current_nonce(owner_address);
+
   const total_supply = parseEther(tokenSupply.toString());
-  const ppt = parseEther(price_per_token.toString());
 
-  const backend_packed = new AbiCoder().encode(
-    ["address", "uint256", "uint256", "uint256", "address"],
-    [
-      owner_address,
-      total_supply,
-      ppt,
-      Number(nonce) + 1,
-      contractAddress.toLowerCase(),
-    ],
-  );
-
-  const backend_hash = keccak256(backend_packed); // bytes32
-  const backend_signature = await wallet.signMessage(getBytes(backend_hash));
-
-  const mint = await contract.mint(
-    owner_address,
-    total_supply,
-    ppt,
-    Number(nonce) + 1,
-    "",
-    backend_signature,
-    user_signature,
-  );
+  const mint = await contract.mint(owner_address, total_supply, "");
 
   const receipt = await mint.wait();
   if (receipt && receipt.hash) {
@@ -72,6 +44,9 @@ export async function Transfer_Token(id, wallet_address, amount) {
     "0x",
   );
   const receipt = await transfer.wait(1);
+  console.log(id);
+  const bal = await contract.balanceOf(wallet.address, id);
+  console.log("balance : ", bal);
   return receipt;
 }
 
