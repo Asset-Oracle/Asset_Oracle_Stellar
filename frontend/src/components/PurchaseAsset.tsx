@@ -18,12 +18,14 @@ interface PurchaseassetProp {
   asset_id: string;
   readyToPurchase: boolean;
   setReadyToPurchase: (value: boolean) => void;
+  refresh: () => void;
 }
 
 export default function PurchaseAsset({
   asset_id,
   readyToPurchase,
   setReadyToPurchase,
+  refresh,
 }: PurchaseassetProp) {
   const activeAccount = useAppKitAccount();
   const [assetPurchaseAmount, setAssetPurchaseAmount] = useState(0);
@@ -142,6 +144,7 @@ export default function PurchaseAsset({
   useEffect(() => {
     if (confirmPaymentData) {
       setPurchaseResponse("Purchase Successful");
+      refresh();
     }
     if (confirmPaymentError) {
       setPurchaseResponse("Purchase UnSuccessful");

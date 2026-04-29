@@ -130,7 +130,7 @@ function Asset({ sideBarOut }: DashboardProps) {
     if (claimData) {
       console.log("claimed success", claimData);
       refetch();
-      setTokenizedResponse("Asset successfully Claimed");
+      setTokenizedResponse("Successfully Claimed this Asset");
     }
     if (claimError) {
       setTokenizedResponse("Error while claiming asset");
@@ -142,7 +142,7 @@ function Asset({ sideBarOut }: DashboardProps) {
     }
     if (tokenizedError) {
       console.log(tokenizedError);
-      setTokenizedResponse("Error Tokenizing Asset");
+      setTokenizedResponse("Error while Tokenizing asset");
     }
   }, [claimData, claimError, tokenizedData, tokenizedError]);
 
@@ -486,6 +486,7 @@ function Asset({ sideBarOut }: DashboardProps) {
         readyToPurchase={readyToPurchase}
         setReadyToPurchase={setReadyToPurchase}
         asset_id={id as string}
+        refresh={refetch}
       />
 
       <InfoModal
