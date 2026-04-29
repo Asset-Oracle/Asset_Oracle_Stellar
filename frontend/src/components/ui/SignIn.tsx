@@ -108,7 +108,7 @@ export default function SignIn({
               className="w-[80%] "
               disabled={isLoading}
             >
-              {isLoading ? "Siging up..." : "Sign Up"}
+              {isLoading ? "Signing up..." : "Sign In"}
             </Button>
           </div>
         </form>
