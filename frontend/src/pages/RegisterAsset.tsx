@@ -5,6 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { register } from "../server_functions/Server_Functions";
 import { useActiveEVMAccount } from "../Zustand/Store";
+import InfoModal from "@/components/InfoModal";
 
 interface DashboardProps {
   sideBarOut: boolean;
@@ -142,6 +143,9 @@ function RegisterAsset({ sideBarOut }: DashboardProps) {
   const [locationCity, setLocationCity] = useState("");
   const [locationState, setLocationState] = useState("");
   const [valuation, setValuation] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  const [tokenizedResponse, setTokenizedResponse] = useState("");
 
   const [assetImage, setAssetImage] = useState<File[]>([]);
   const [documentation, setDocumentation] = useState<File[]>([]);
@@ -369,7 +373,7 @@ function RegisterAsset({ sideBarOut }: DashboardProps) {
     };
   }, [locationAddress, locationCity, locationState]);
 
-  const { data, mutate } = useMutation({
+  const { data, mutate, isError, isSuccess, error } = useMutation({
     mutationKey: [
       "register",
       {
@@ -417,6 +421,7 @@ function RegisterAsset({ sideBarOut }: DashboardProps) {
         return;
       }
       mutate();
+      setIsRegistering(true);
       console.log("Mutating");
     }
   };
@@ -433,9 +438,13 @@ function RegisterAsset({ sideBarOut }: DashboardProps) {
   }, [assetName]);
   useEffect(() => {
     if (data) {
-      alert("Asset Listed");
+      setTokenizedResponse("Asset Registered Successfully");
     }
-  }, [data]);
+    if (error) {
+      setTokenizedResponse("Error Registering Asset");
+    }
+    setIsRegistering(false);
+  }, [data, error]);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -476,12 +485,18 @@ function RegisterAsset({ sideBarOut }: DashboardProps) {
                 className=" !text-white !font-semibold py-2 px-4 rounded-lg"
                 onClick={handleNext}
               >
-                Next
+                {isRegistering ? "Registering ..." : "Next"}
               </button>
             </div>
           </div>
         </div>
       </div>
+      <InfoModal
+        message={tokenizedResponse}
+        isError={isError}
+        isSuccess={isSuccess}
+        setMessage={setTokenizedResponse}
+      />
     </>
   );
 }

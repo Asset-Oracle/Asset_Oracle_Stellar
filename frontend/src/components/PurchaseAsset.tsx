@@ -10,6 +10,7 @@ import {
 } from "../server_functions/Server_Functions";
 import { useSendXLM } from "../hooks/useSendXlm";
 import { useActiveEVMAccount, useActiveStellarAccount } from "../Zustand/Store";
+import InfoModal from "./InfoModal";
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
 
@@ -29,8 +30,8 @@ export default function PurchaseAsset({
   const [currentMemo, setCurrentMemo] = useState("");
   const [selectedOption, setSelectedOption] = useState("card");
   const account = useActiveStellarAccount((state) => state.accout);
-
-  const { sendXLM } = useSendXLM();
+  const [purchaseResponse, setPurchaseResponse] = useState("");
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   const {
     data: purchaseData,
@@ -84,6 +85,8 @@ export default function PurchaseAsset({
   const {
     data: confirmPaymentData,
     error: confirmPaymentError,
+    isError,
+    isSuccess,
     mutate: ConfirmPayment,
   } = useMutation({
     mutationKey: ["confirm_payments", asset_id],
@@ -138,10 +141,10 @@ export default function PurchaseAsset({
 
   useEffect(() => {
     if (confirmPaymentData) {
-      alert("Purchase Successful");
+      setPurchaseResponse("Purchase Successful");
     }
     if (confirmPaymentError) {
-      alert("Purchase UnSuccessful");
+      setPurchaseResponse("Purchase UnSuccessful");
     }
   }, [confirmPaymentData, confirmPaymentError]);
 
@@ -170,12 +173,18 @@ export default function PurchaseAsset({
                 onClick={handleCreatePayment}
                 className=" text-[#4f46e5]! font-bold! mt-15 bg-gray-100! text-white py-2 px-4 rounded-md"
               >
-                Purchase
+                {isPurchasing ? "Purchasing ..." : "Purchase"}
               </button>
             </div>
           </div>
         </div>
       )}
+      <InfoModal
+        message={purchaseResponse}
+        isError={isError}
+        isSuccess={isSuccess}
+        setMessage={setPurchaseResponse}
+      />
     </>
   );
 }

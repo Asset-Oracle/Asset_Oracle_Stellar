@@ -7,6 +7,7 @@ import {
   parseEther,
   getBytes,
   Interface,
+  formatEther,
 } from "ethers";
 import { tokenCreatorAbi } from "./abi.js";
 
@@ -47,7 +48,7 @@ export async function Transfer_Token(id, wallet_address, amount) {
   console.log(id);
   const bal = await contract.balanceOf(wallet.address, id);
   console.log("balance : ", bal);
-  return receipt;
+  return { receipt, balance: formatEther(bal) };
 }
 
 export async function getTransaction(hash, gateway) {

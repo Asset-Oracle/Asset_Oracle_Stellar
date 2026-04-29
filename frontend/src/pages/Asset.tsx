@@ -20,6 +20,7 @@ import { encodeAbiParameters, keccak256, parseEther, toBytes } from "viem";
 import { tokenCreatorAbi } from "../ABI/abi";
 import PurchaseAsset from "../components/PurchaseAsset";
 import { useActiveEVMAccount } from "../Zustand/Store";
+import InfoModal from "@/components/InfoModal";
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
 
@@ -38,6 +39,7 @@ function Asset({ sideBarOut }: DashboardProps) {
   const account = useAppKitAccount();
   const [isSigningTx, setIsSigningTx] = useState(false);
   const [currentImage, setCurrentImage] = useState(assetInfo?.images[0]);
+  const [tokenizedResponse, setTokenizedResponse] = useState("");
 
   useEffect(() => {
     console.log(currentImage);
@@ -54,6 +56,8 @@ function Asset({ sideBarOut }: DashboardProps) {
   const {
     data: claimData,
     error: claimError,
+    isError: isClaimError,
+    isSuccess: isClaimSuccess,
     mutate: Claim,
   } = useMutation({
     mutationKey: [
@@ -70,6 +74,8 @@ function Asset({ sideBarOut }: DashboardProps) {
   const {
     data: tokenizedData,
     error: tokenizedError,
+    isError,
+    isSuccess,
     mutate: Tokenize,
   } = useMutation({
     mutationKey: [
@@ -124,18 +130,19 @@ function Asset({ sideBarOut }: DashboardProps) {
     if (claimData) {
       console.log("claimed success", claimData);
       refetch();
-      alert("Successfully Claimed this Asset");
+      setTokenizedResponse("Asset successfully Claimed");
     }
     if (claimError) {
-      alert("error while claiming asset");
+      setTokenizedResponse("Error while claiming asset");
       console.log(claimError);
     }
     if (tokenizedData) {
-      alert("asset successfully tokenized");
+      setTokenizedResponse("Asset successfully tokenized");
       refetch();
     }
     if (tokenizedError) {
       console.log(tokenizedError);
+      setTokenizedResponse("Error Tokenizing Asset");
     }
   }, [claimData, claimError, tokenizedData, tokenizedError]);
 
@@ -479,6 +486,13 @@ function Asset({ sideBarOut }: DashboardProps) {
         readyToPurchase={readyToPurchase}
         setReadyToPurchase={setReadyToPurchase}
         asset_id={id as string}
+      />
+
+      <InfoModal
+        message={tokenizedResponse}
+        isError={isError || isClaimError}
+        isSuccess={isSuccess || isClaimSuccess}
+        setMessage={setTokenizedResponse}
       />
     </>
   );

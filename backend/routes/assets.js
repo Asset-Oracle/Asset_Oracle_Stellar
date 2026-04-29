@@ -509,6 +509,7 @@ router.post("/:id/claim", async (req, res) => {
     }
 
     if (asset.claim_status !== "UNCLAIMED") {
+      console.log("kkkkk");
       return res
         .status(400)
         .json({ error: "Asset is not available for claiming" });
@@ -785,19 +786,19 @@ router.post("/:id/confirm_purchase", async (req, res) => {
       throw new Error("Insufficient amount transferred");
     }
 
-    const receipt = await Transfer_Token(
+    const transferData = await Transfer_Token(
       token_number,
       evm_wallet_address,
       paymentData.token_amount,
     );
-    console.log("PayMent Receipt : ", receipt.hash);
+    console.log("PayMent Receipt : ", transferData.receipt.hash);
     console.log("Updating Payment Info");
 
     const { data: updatePayment, error: updatePaymentError } = await supabase
       .from("payments")
       .update({
         status: "PAID",
-        txHash: receipt.hash,
+        txHash: transferData.receipt.hash,
       })
       .eq("memo", memo);
 
@@ -807,11 +808,24 @@ router.post("/:id/confirm_purchase", async (req, res) => {
         error: `Error updating payment Info for ${memo}`,
       });
     }
-    console.log("Updated Payment Info");
+    console.log("Updated Payment Info", transferData.balance);
+
+    const { data: updateBalance, error: updateBalanceError } = await supabase
+      .from("assets")
+      .update({
+        tokens_available: Number(transferData.balance),
+      })
+      .eq("id", id);
+    if (updateBalanceError) {
+      console.log(updateBalanceError);
+      return res.status(500).json({
+        error: `Error updating payment Info for ${memo}`,
+      });
+    }
 
     res.status(201).json({
       data: {
-        hash: receipt.hash,
+        hash: transferData.receipt.hash,
         status: "SUCCESS",
       },
     });
