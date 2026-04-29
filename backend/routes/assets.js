@@ -211,13 +211,13 @@ router.post("/register", assetUpload, async (req, res) => {
 
   console.log("Form Data:", name, location);
   try {
-    const uploadToStorage = async (fileArray, bucketName) => {
+    const uploadToStorage = async (fileArray, bucketName, folder) => {
       const urls = [];
 
       for (const file of fileArray) {
         const fileExt = file.originalname.split(".").pop();
         const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${ownerWallet}/${name}/${fileName}`; // Organize by user wallet
+        const filePath = `${ownerWallet}/${name}/${folder}/${fileName}`; // Organize by user wallet
 
         const { data, error } = await supabase.storage
           .from("asset-files")
@@ -237,10 +237,15 @@ router.post("/register", assetUpload, async (req, res) => {
       }
       return urls;
     };
-    const imageUrls = await uploadToStorage(files.images || [], "asset-files");
+    const imageUrls = await uploadToStorage(
+      files.images || [],
+      "asset-files",
+      "images",
+    );
     const docUrls = await uploadToStorage(
       files.propertyDetails || [],
       "asset-documents",
+      "documents",
     );
     console.log(imageUrls);
     //console.log("Files:", files);
