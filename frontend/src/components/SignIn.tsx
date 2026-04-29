@@ -13,7 +13,7 @@ export default function SignIn() {
           setReadyToSignIn(true);
         }}
       >
-        Sing In
+        Sign In
       </button>
 
       {readyToSignIn && (
