@@ -45,7 +45,7 @@ function Dashboard({ sideBarOut }: DashboardProps) {
           <div className=" text-black pt-25 flex flex-col items-start justify-center ml-10">
             <div className="flex flex-col ">
               {!ActiveAccount.address && (
-                <div className="absolute left-[50%] top-[10%] translate-x-[-50%] border-2 rounded-md bg-orange-500 border-red-500 px-2 py-3">
+                <div className="absolute left-[50%] top-[10%] translate-x-[-50%] lg:ml-[150px] border-2 rounded-md bg-orange-500 border-red-500 px-2 py-1 w-[90%] md:w-[40%] flex justify-center items-center">
                   <p>Note : Your EVM Wallet Is Not Linked, Go to settings</p>
                 </div>
               )}
