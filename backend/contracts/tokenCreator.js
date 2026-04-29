@@ -40,7 +40,7 @@ export async function Transfer_Token(id, wallet_address, amount) {
     wallet.address,
     wallet_address,
     id,
-    BigInt(amount),
+    parseEther(amount.toString()),
     "0x",
   );
   const receipt = await transfer.wait(1);
