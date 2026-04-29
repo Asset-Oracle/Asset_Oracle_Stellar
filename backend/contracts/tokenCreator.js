@@ -26,7 +26,7 @@ export async function TokenizeAsset(
   user_signature,
 ) {
   const contract = new Contract(contractAddress, tokenCreatorAbi.abi, wallet);
-  const nonce = await contract.get_current_nonce();
+  const nonce = await contract.get_current_nonce(owner_address);
   const total_supply = parseEther(tokenSupply.toString());
   const ppt = parseEther(price_per_token.toString());
 
