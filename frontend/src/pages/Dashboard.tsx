@@ -4,12 +4,13 @@ import MenuBar from "../components/MenuBar";
 import { useNavigate } from "react-router";
 import { useGetUserInfo } from "../hooks/useUserQuery";
 import MarketPlaceItemContainer from "../components/marketPlaceItemContainer";
-import { useActiveEVMAccount } from "../Zustand/Store";
+import { useActiveEVMAccount, useAuth } from "../Zustand/Store";
 
 interface DashboardProps {
   sideBarOut: boolean;
 }
 function Dashboard({ sideBarOut }: DashboardProps) {
+  const user = useAuth();
   const { backendUser } = useGetUserInfo();
   const { dashboardInfo, allAssets } = useGetUserInfo();
   const ActiveAccount = useActiveEVMAccount((state) => state.accout);
@@ -50,7 +51,7 @@ function Dashboard({ sideBarOut }: DashboardProps) {
               )}
 
               <h1 className="font-bold !text-4xl">
-                Welcome back {backendUser?.name}
+                Welcome back {user.activeAccount.username}
               </h1>
               <p>Monitor your assets, investments, and verification activity</p>
             </div>
