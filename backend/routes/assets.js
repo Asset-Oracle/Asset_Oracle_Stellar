@@ -5,6 +5,8 @@ const axios = require("axios");
 const ethers = require("ethers");
 const uniqid = require("uniqid");
 const multer = require("multer");
+const Groq = require("groq-sdk"); // ADDED: Import Groq SDK
+
 const {
   TokenizeAsset,
   purchaseAsset,
@@ -20,6 +22,7 @@ const assetUpload = upload.fields([
   { name: "propertyDetails", maxCount: 10 },
   { name: "images", maxCount: 10 },
 ]);
+
 // Test endpoint to check Supabase connection
 router.get("/test-db", async (req, res) => {
   try {
@@ -87,7 +90,6 @@ router.get("/user/:walletAddress", async (req, res) => {
 
     console.log(`📋 Fetching assets for wallet: ${walletAddress}`);
 
-    // Get all assets owned by this wallet (case-insensitive)
     const { data: assets, error } = await supabase
       .from("assets")
       .select("*")
@@ -201,8 +203,6 @@ router.get("/:id", async (req, res) => {
 
 // POST /api/assets/register - Register new asset with auto-verification and image upload
 router.post("/register", assetUpload, async (req, res) => {
-  //try {
-
   const body = req.body;
   const files = req.files;
 
@@ -210,6 +210,7 @@ router.post("/register", assetUpload, async (req, res) => {
     body;
 
   console.log("Form Data:", name, location);
+  
   try {
     const uploadToStorage = async (fileArray, bucketName, folder) => {
       const urls = [];
@@ -217,7 +218,7 @@ router.post("/register", assetUpload, async (req, res) => {
       for (const file of fileArray) {
         const fileExt = file.originalname.split(".").pop();
         const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${ownerWallet}/${name}/${folder}/${fileName}`; // Organize by user wallet
+        const filePath = `${ownerWallet}/${name}/${folder}/${fileName}`;
 
         const { data, error } = await supabase.storage
           .from("asset-files")
@@ -228,7 +229,6 @@ router.post("/register", assetUpload, async (req, res) => {
 
         if (error) throw error;
 
-        // Get the Public URL
         const {
           data: { publicUrl },
         } = supabase.storage.from(bucketName).getPublicUrl(filePath);
@@ -237,6 +237,7 @@ router.post("/register", assetUpload, async (req, res) => {
       }
       return urls;
     };
+
     const imageUrls = await uploadToStorage(
       files.images || [],
       "asset-files",
@@ -247,8 +248,8 @@ router.post("/register", assetUpload, async (req, res) => {
       "asset-documents",
       "documents",
     );
-    console.log(imageUrls);
-    //console.log("Files:", files);
+    
+    console.log("Image URLs:", imageUrls);
 
     if (!name || !estimatedValue || !ownerWallet) {
       return res.status(400).json({
@@ -264,7 +265,6 @@ router.post("/register", assetUpload, async (req, res) => {
     for (let i = 0; i < imageUrls.length; i++) {
       const image = imageUrls[i];
 
-      // If image is a URL, keep it as is
       if (
         typeof image === "string" &&
         (image.startsWith("http://") || image.startsWith("https://"))
@@ -273,7 +273,6 @@ router.post("/register", assetUpload, async (req, res) => {
         continue;
       }
 
-      // If image has a URL property, use it
       if (
         image.url &&
         (image.url.startsWith("http://") || image.url.startsWith("https://"))
@@ -282,7 +281,6 @@ router.post("/register", assetUpload, async (req, res) => {
         continue;
       }
 
-      // If image is base64, upload it to Supabase Storage
       if (
         image.data ||
         (typeof image === "string" && image.includes("base64"))
@@ -290,12 +288,10 @@ router.post("/register", assetUpload, async (req, res) => {
         try {
           const crypto = require("crypto");
 
-          // Get base64 data
           const base64Data = image.data || image;
           const cleanBase64 = base64Data.replace(/^data:.*;base64,/, "");
           const fileBuffer = Buffer.from(cleanBase64, "base64");
 
-          // Generate unique filename
           const timestamp = Date.now();
           const randomStr = crypto.randomBytes(8).toString("hex");
           const fileExtension = image.type?.split("/")[1] || "jpg";
@@ -303,7 +299,6 @@ router.post("/register", assetUpload, async (req, res) => {
 
           console.log(`📤 Uploading image to Supabase: ${uniqueFileName}`);
 
-          // Upload to Supabase Storage
           const { data: uploadData, error: uploadError } =
             await supabase.storage
               .from("asset-files")
@@ -318,7 +313,6 @@ router.post("/register", assetUpload, async (req, res) => {
             continue;
           }
 
-          // Get public URL
           const {
             data: { publicUrl },
           } = supabase.storage.from("asset-files").getPublicUrl(uniqueFileName);
@@ -338,63 +332,109 @@ router.post("/register", assetUpload, async (req, res) => {
       }
     }
 
-    // Prepare AI analysis request
+    // UPDATED: AI Analysis using Groq directly
+    console.log(`🤖 Starting AI fraud analysis with Groq`);
+    
     let aiAnalysisResult = {
-      riskScore: 78,
-      recommendation: "HOLD",
+      riskScore: 50,
+      recommendation: "REVIEW",
       yieldPotential: 5,
       confidenceLevel: 0.5,
       fraudLikelihood: "MEDIUM",
-      investmentSummary:
-        "Property analysis based on available data. Market shows rising trends.",
-      risks: ["Market volatility"],
-      strengths: ["Good location"],
-      opportunities: ["Potential appreciation"],
+      investmentSummary: "Property requires manual review - automated analysis unavailable",
+      risks: ["Automated verification pending"],
+      strengths: ["Property submitted for review"],
+      opportunities: ["Awaiting detailed analysis"],
     };
 
-    // Call AI service for analysis
+    // Initialize Groq and get AI analysis
     try {
-      if (process.env.AI_SERVICE_URL && location) {
-        const aiResponse = await axios.post(
-          `${process.env.AI_SERVICE_URL}/api/analyze-complete`,
-          {
-            address: location.address || "",
-            city: location.city || "",
-            state: location.state || "",
-          },
-          { timeout: 30000 },
-        );
+      if (process.env.GROQ_API_KEY) {
+        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-        if (aiResponse.data && aiResponse.data.investment_analysis) {
-          const analysis = aiResponse.data.investment_analysis;
-          aiAnalysisResult = {
-            riskScore: analysis.score || 78,
-            recommendation: analysis.recommendation || "HOLD",
-            yieldPotential: 5,
-            confidenceLevel:
-              aiResponse.data.document_verification?.score / 100 || 0.5,
-            fraudLikelihood:
-              aiResponse.data.document_verification?.score > 80
-                ? "LOW"
-                : "MEDIUM",
-            investmentSummary:
-              analysis.summary || aiAnalysisResult.investmentSummary,
-            risks: analysis.risks || aiAnalysisResult.risks,
-            strengths: analysis.strengths || aiAnalysisResult.strengths,
-            opportunities:
-              analysis.opportunities || aiAnalysisResult.opportunities,
-          };
-        }
+        const locationString = location 
+          ? `${location.address || ''}, ${location.city || ''}, ${location.state || ''}, Nigeria`
+          : 'Nigeria';
+
+        console.log(`🔍 Analyzing property: ${name} at ${locationString}`);
+
+        const aiAnalysis = await groq.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: `You are a Nigerian real estate fraud detection and investment analysis AI. Analyze properties for:
+1. Fraud Risk (Nigerian-specific patterns: fake C of O, duplicate sales, land grabbing, Omo-Onile issues, government acquisition risks)
+2. Investment Potential (rental yield, appreciation, location quality)
+3. Market Analysis (Nigerian property market trends)
+
+Provide detailed JSON output with specific Nigerian real estate insights.`
+            },
+            {
+              role: "user",
+              content: `Analyze this Nigerian property for fraud risk and investment potential:
+
+Property Name: ${name}
+Location: ${locationString}
+Description: ${description || 'No description provided'}
+Estimated Value: ₦${estimatedValue}
+Category: ${category || 'Residential'}
+
+Provide detailed analysis in this exact JSON format:
+{
+  "riskScore": 0-100 (0=safest, 100=highest risk),
+  "recommendation": "BUY" or "HOLD" or "AVOID",
+  "fraudLikelihood": "LOW" or "MEDIUM" or "HIGH",
+  "yieldPotential": 0-10 (expected rental yield percentage),
+  "confidenceLevel": 0-1 (analysis confidence),
+  "investmentSummary": "2-3 sentence overview of investment potential",
+  "risks": ["list specific risks including Nigerian fraud patterns"],
+  "strengths": ["list property advantages"],
+  "opportunities": ["list investment opportunities"]
+}
+
+Focus on Nigerian real estate market realities. Be specific about fraud indicators.`
+            }
+          ],
+          model: "mixtral-8x7b-32768",
+          temperature: 0.3,
+          max_tokens: 1200,
+          response_format: { type: "json_object" }
+        });
+
+        const aiContent = JSON.parse(aiAnalysis.choices[0].message.content);
+        
+        aiAnalysisResult = {
+          riskScore: aiContent.riskScore || 50,
+          recommendation: aiContent.recommendation || "HOLD",
+          yieldPotential: aiContent.yieldPotential || 5,
+          confidenceLevel: aiContent.confidenceLevel || 0.7,
+          fraudLikelihood: aiContent.fraudLikelihood || "MEDIUM",
+          investmentSummary: aiContent.investmentSummary || "Analysis completed",
+          risks: aiContent.risks || ["Standard market risks"],
+          strengths: aiContent.strengths || ["Property analyzed"],
+          opportunities: aiContent.opportunities || ["Investment potential identified"],
+        };
+
+        console.log(`✅ Groq AI Analysis complete - Risk Score: ${aiAnalysisResult.riskScore}`);
+        
+      } else {
+        console.warn('⚠️ GROQ_API_KEY not found in environment variables');
       }
     } catch (aiError) {
-      console.warn(
-        "AI service unavailable, using fallback analysis:",
-        aiError.message,
-      );
+      console.error("❌ Groq AI analysis failed:", aiError.message);
+      console.log("Using fallback analysis values");
     }
 
-    // Auto-verify the asset
+    // Auto-verify based on risk score
     let verification_status = "VERIFIED";
+    
+    if (aiAnalysisResult.riskScore > 70) {
+      verification_status = "FLAGGED";
+    } else if (aiAnalysisResult.riskScore > 40) {
+      verification_status = "PENDING_REVIEW";
+    }
+
+    console.log(`📊 Verification Status: ${verification_status} (Risk: ${aiAnalysisResult.riskScore})`);
 
     // Prepare blockchain data
     const blockchainData = {
@@ -418,8 +458,9 @@ router.post("/register", assetUpload, async (req, res) => {
           verifiedAt: new Date().toISOString(),
           ownerWallet: ownerWallet,
           estimatedValue: estimatedValue,
-          verificationMethod: "automatic",
-          aiScore: aiAnalysisResult.riskScore || 78,
+          verificationMethod: "groq-ai-analysis",
+          aiScore: aiAnalysisResult.riskScore,
+          fraudLikelihood: aiAnalysisResult.fraudLikelihood,
         };
 
         const hcsResult = await submitVerificationMessage(
@@ -435,7 +476,7 @@ router.post("/register", assetUpload, async (req, res) => {
         blockchainData.hcs_transaction_id = hcsResult.transactionId;
       }
     } catch (hcsError) {
-      console.warn("HCS submission failed (non-critical):", hcsError.message);
+      console.warn("⚠️ HCS submission failed (non-critical):", hcsError.message);
     }
 
     // Insert asset into database
@@ -450,7 +491,7 @@ router.post("/register", assetUpload, async (req, res) => {
           category,
           location: location || {},
           property_details: {},
-          images: imageUrls, // Use processed images
+          images: imageUrls,
           verification_status,
           blockchain_data: blockchainData,
           ai_analysis: aiAnalysisResult,
@@ -464,12 +505,12 @@ router.post("/register", assetUpload, async (req, res) => {
     if (error) throw error;
 
     console.log(
-      `✅ Asset registered with ${processedImages.length} images: ${newAsset.id}`,
+      `✅ Asset registered: ${newAsset.id} | Status: ${verification_status} | Images: ${processedImages.length}`,
     );
 
     res.status(201).json({
       success: true,
-      message: "Asset registered and automatically verified",
+      message: `Asset registered successfully with ${verification_status} status`,
       data: {
         asset: newAsset,
         verification: {
@@ -482,7 +523,7 @@ router.post("/register", assetUpload, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error registering asset:", error);
+    console.error("❌ Error registering asset:", error);
     res
       .status(500)
       .json({ error: "Failed to register asset", details: error.message });
@@ -509,7 +550,6 @@ router.post("/:id/claim", async (req, res) => {
     }
 
     if (asset.claim_status !== "UNCLAIMED") {
-      console.log("kkkkk");
       return res
         .status(400)
         .json({ error: "Asset is not available for claiming" });
@@ -517,7 +557,6 @@ router.post("/:id/claim", async (req, res) => {
 
     console.log(`📋 Processing claim for asset ${req.params.id}`);
 
-    // Update asset with claim
     const { data: claimedAsset, error: updateError } = await supabase
       .from("assets")
       .update({
@@ -549,7 +588,7 @@ router.post("/:id/claim", async (req, res) => {
   }
 });
 
-// POST /api/assets/:id/tokenize - Tokenize verified asset with Hedera HTS
+// POST /api/assets/:id/tokenize - Tokenize verified asset
 router.post("/:id/tokenize", async (req, res) => {
   try {
     const { tokenSupply, pricePerToken, walletAddress } = req.body;
@@ -557,12 +596,15 @@ router.post("/:id/tokenize", async (req, res) => {
     if (!tokenSupply || tokenSupply <= 0 || !pricePerToken || !walletAddress) {
       return res.status(400).json({
         error:
-          "Missing required fields: tokenSupply, pricePerToken, walletAddress, isMintable",
+          "Missing required fields: tokenSupply, pricePerToken, walletAddress",
       });
     }
-    console.log(tokenSupply, walletAddress, pricePerToken);
+    
+    console.log("Tokenization request:", { tokenSupply, walletAddress, pricePerToken });
+    
     const tokenized_data = await TokenizeAsset(tokenSupply, walletAddress);
-    console.log("Tokenization result: ", tokenized_data);
+    console.log("Tokenization result:", tokenized_data);
+    
     const { data: asset, error: fetchError } = await supabase
       .from("assets")
       .select("*")
@@ -598,7 +640,8 @@ router.post("/:id/tokenize", async (req, res) => {
       .eq("id", req.params.id)
       .select("*");
 
-    console.log(`🪙 Tokenizing asset ${req.params.id} on Hedera`);
+    console.log(`🪙 Asset tokenized: ${req.params.id}`);
+    
     res.status(201).json({
       data: update[0],
     });
@@ -615,6 +658,7 @@ router.post("/:id/create_payment", async (req, res) => {
   const id = req.params.id;
   const { evm_wallet_address, stellar_wallet_address, token_amount, gateway } =
     req.body;
+    
   if (
     !id ||
     !evm_wallet_address ||
@@ -627,12 +671,14 @@ router.post("/:id/create_payment", async (req, res) => {
         "Missing required fields: id, wallet_address, token_amount, gateway",
     });
   }
+  
   if (gateway === "STELLAR" && !stellar_wallet_address) {
     return res.status(400).json({
       error:
         "Missing required fields: stellar_wallet_address for STELLAR gateway",
     });
   }
+  
   const { data: asset, error: assetError } = await supabase
     .from("assets")
     .select("*")
@@ -644,6 +690,7 @@ router.post("/:id/create_payment", async (req, res) => {
       message: "Couldnt Find Asset",
     });
   }
+  
   let wallet_address;
   if (gateway === "STELLAR") {
     wallet_address = stellar_wallet_address;
@@ -656,12 +703,15 @@ router.post("/:id/create_payment", async (req, res) => {
     const price_per_token = asset.price_per_token;
     const token_number = asset.token_number;
     let transfer_amount;
+    
     if (gateway === "STELLAR") {
       transfer_amount = Number(5).toFixed(7);
     } else {
       transfer_amount = ethers.parseEther(Number(0.0000015).toString());
     }
-    console.log(price_per_token, memo, token_number, token_amount);
+    
+    console.log("Payment details:", { price_per_token, memo, token_number, token_amount });
+    
     const { data: createdPayment, error: paymentCreationError } = await supabase
       .from("payments")
       .insert({
@@ -675,12 +725,14 @@ router.post("/:id/create_payment", async (req, res) => {
       })
       .select()
       .single();
+      
     if (paymentCreationError || !createdPayment) {
       console.log(paymentCreationError);
       return res.status(500).json({
         message: "Couldnt Create Payment ",
       });
     }
+    
     res.status(201).json({
       data: {
         memo: createdPayment.memo,
@@ -700,22 +752,27 @@ router.post("/:id/create_payment", async (req, res) => {
 router.post("/:id/confirm_purchase", async (req, res) => {
   const { evm_wallet_address, stellar_wallet_address, hash, memo } = req.body;
   const id = req.params.id;
+  
   if (!hash || !evm_wallet_address || !id || !memo) {
     return res.status(400).json({
       error: "Missing required fields: hash, amount, id, memo",
     });
   }
-  console.log(hash, evm_wallet_address, stellar_wallet_address, memo);
+  
+  console.log("Confirming purchase:", { hash, evm_wallet_address, stellar_wallet_address, memo });
+  
   const { data: paymentData, error: paymentError } = await supabase
     .from("payments")
     .select("*")
     .eq("memo", memo)
     .single();
+    
   const { data: asset, error: assetError } = await supabase
     .from("assets")
     .select("*")
     .eq("id", id)
     .single();
+    
   if (!asset || assetError) {
     return res.status(500).json({
       error: `Error getting asset`,
@@ -729,60 +786,52 @@ router.post("/:id/confirm_purchase", async (req, res) => {
   }
 
   if (paymentData.status !== "PENDING") {
-    console.log("!Pending");
     return res.status(500).json({
       error: `Payment for ${memo} has been processed`,
     });
   }
+  
   const token_number = asset.token_number;
   const gateway = paymentData.gateway;
   let wallet_address;
+  
   if (gateway === "STELLAR") {
     wallet_address = stellar_wallet_address;
   } else {
     wallet_address = evm_wallet_address;
   }
-  console.log("Gate Way", gateway);
+  
+  console.log("Gateway:", gateway);
+  
   try {
     const data = await getTransaction(hash, gateway);
 
     if (data[0].toLowerCase() !== wallet_address.toLowerCase()) {
-      const { data: updatePayment, error: updatePaymentError } = await supabase
+      await supabase
         .from("payments")
-        .update({
-          status: "FAILED",
-        })
-        .eq("memo", memo)
-        .select()
-        .single();
+        .update({ status: "FAILED" })
+        .eq("memo", memo);
       throw new Error("Invalid sender address");
     }
+    
     if (
       data[1].toLowerCase() !==
       (gateway === "STELLAR"
         ? stellar_wallet.toLowerCase()
         : contractAddress.toLowerCase())
     ) {
-      console.log(stellar_wallet.toLowerCase(), contractAddress.toLowerCase());
-      const { data: updatePayment, error: updatePaymentError } = await supabase
+      await supabase
         .from("payments")
-        .update({
-          status: "FAILED",
-        })
-        .eq("memo", memo)
-        .select()
-        .single();
+        .update({ status: "FAILED" })
+        .eq("memo", memo);
       throw new Error("Invalid recipient address");
     }
+    
     if (Number(data[3]) < paymentData.eth_amount) {
-      const { data: updatePayment, error: updatePaymentError } = await supabase
+      await supabase
         .from("payments")
-        .update({
-          status: "FAILED",
-        })
-        .eq("memo", memo)
-        .select()
-        .single();
+        .update({ status: "FAILED" })
+        .eq("memo", memo);
       throw new Error("Insufficient amount transferred");
     }
 
@@ -791,10 +840,10 @@ router.post("/:id/confirm_purchase", async (req, res) => {
       evm_wallet_address,
       paymentData.token_amount,
     );
-    console.log("PayMent Receipt : ", transferData.receipt.hash);
-    console.log("Updating Payment Info");
+    
+    console.log("Transfer complete:", transferData.receipt.hash);
 
-    const { data: updatePayment, error: updatePaymentError } = await supabase
+    await supabase
       .from("payments")
       .update({
         status: "PAID",
@@ -802,26 +851,12 @@ router.post("/:id/confirm_purchase", async (req, res) => {
       })
       .eq("memo", memo);
 
-    if (updatePaymentError) {
-      console.log(updatePaymentError);
-      return res.status(500).json({
-        error: `Error updating payment Info for ${memo}`,
-      });
-    }
-    console.log("Updated Payment Info", transferData.balance);
-
-    const { data: updateBalance, error: updateBalanceError } = await supabase
+    await supabase
       .from("assets")
       .update({
         tokens_available: Number(transferData.balance),
       })
       .eq("id", id);
-    if (updateBalanceError) {
-      console.log(updateBalanceError);
-      return res.status(500).json({
-        error: `Error updating payment Info for ${memo}`,
-      });
-    }
 
     res.status(201).json({
       data: {
@@ -840,7 +875,7 @@ router.post("/:id/confirm_purchase", async (req, res) => {
   }
 });
 
-// POST /api/assets/:id/verify - Manual verification (if needed)
+// POST /api/assets/:id/verify - Manual verification
 router.post("/:id/verify", async (req, res) => {
   try {
     const { data: asset, error: fetchError } = await supabase
@@ -888,19 +923,19 @@ router.post("/:id/verify", async (req, res) => {
 
 router.post("/:id/ex_tokenize", async (req, res) => {
   const { tokenSupply, ownerWallet, isMintable, userSignature } = req.body;
-  console.log(tokenSupply, ownerWallet, isMintable, userSignature);
+  
   if (
     tokenSupply <= 0 ||
     !ownerWallet ||
     isMintable === undefined ||
     !userSignature
   ) {
-    console.log("Missing required fields in request body");
     return res.status(400).json({
       error:
         "Missing required fields: tokenSupply, ownerWallet, isMintable, userSignature",
     });
   }
+  
   try {
     const data = await TokenizeAsset(
       tokenSupply,
@@ -908,7 +943,9 @@ router.post("/:id/ex_tokenize", async (req, res) => {
       isMintable,
       userSignature,
     );
-    console.log("Tokenization result: ", data);
+    
+    console.log("Tokenization result:", data);
+    
     res.json({
       success: true,
       message: "Tokenization process initiated. Check logs for details.",
@@ -918,4 +955,5 @@ router.post("/:id/ex_tokenize", async (req, res) => {
     return res.status(500).json({ error: "Failed to tokenize asset" });
   }
 });
+
 module.exports = router;
