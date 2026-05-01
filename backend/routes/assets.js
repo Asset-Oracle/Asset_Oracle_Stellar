@@ -206,10 +206,15 @@ router.post("/register", assetUpload, async (req, res) => {
   const body = req.body;
   const files = req.files;
 
-  const { name, description, estimatedValue, ownerWallet, category, location } =
-    body;
+  const { name, description, estimatedValue, email, category, location } = body;
 
-  console.log("Form Data:", name, location);
+  console.log("Form Data:", name, location, email);
+
+  if (!name || !estimatedValue || !email) {
+    return res.status(400).json({
+      error: "Missing required fields: name, estimatedValue, ownerWallet",
+    });
+  }
 
   try {
     const uploadToStorage = async (fileArray, bucketName, folder) => {
@@ -218,7 +223,7 @@ router.post("/register", assetUpload, async (req, res) => {
       for (const file of fileArray) {
         const fileExt = file.originalname.split(".").pop();
         const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${ownerWallet}/${name}/${folder}/${fileName}`;
+        const filePath = `${email}/${name}/${folder}/${fileName}`;
 
         const { data, error } = await supabase.storage
           .from("asset-files")
@@ -250,12 +255,6 @@ router.post("/register", assetUpload, async (req, res) => {
     );
 
     console.log("Image URLs:", imageUrls);
-
-    if (!name || !estimatedValue || !ownerWallet) {
-      return res.status(400).json({
-        error: "Missing required fields: name, estimatedValue, ownerWallet",
-      });
-    }
 
     console.log(`📝 Registering asset: ${name}`);
 
@@ -449,7 +448,7 @@ Focus on Nigerian real estate market realities. Be specific about fraud indicato
       verified_at: new Date().toISOString(),
       document_hash: require("crypto")
         .createHash("sha256")
-        .update(JSON.stringify({ name, ownerWallet, estimatedValue }))
+        .update(JSON.stringify({ name, email, estimatedValue }))
         .digest("hex"),
       verification_id: `VER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
@@ -497,7 +496,7 @@ Focus on Nigerian real estate market realities. Be specific about fraud indicato
           name,
           description,
           estimated_value: estimatedValue,
-          owner_wallet: ownerWallet,
+          email,
           category,
           location: location || {},
           property_details: {},
@@ -543,9 +542,9 @@ Focus on Nigerian real estate market realities. Be specific about fraud indicato
 // POST /api/assets/:id/claim - Claim an unclaimed asset
 router.post("/:id/claim", async (req, res) => {
   try {
-    const { walletAddress, documents } = req.body;
+    const { email, documents } = req.body;
 
-    if (!walletAddress) {
+    if (!email) {
       return res.status(400).json({ error: "Missing wallet address" });
     }
 
@@ -570,11 +569,11 @@ router.post("/:id/claim", async (req, res) => {
     const { data: claimedAsset, error: updateError } = await supabase
       .from("assets")
       .update({
-        claimed_by: walletAddress,
+        claimed_by: email,
         claim_status: "CLAIMED",
         claim_documents: documents || [],
         claimed_at: new Date().toISOString(),
-        owner_wallet: walletAddress,
+        email: email,
         verification_status: "VERIFIED",
       })
       .eq("id", req.params.id)
@@ -601,12 +600,18 @@ router.post("/:id/claim", async (req, res) => {
 // POST /api/assets/:id/tokenize - Tokenize verified asset
 router.post("/:id/tokenize", async (req, res) => {
   try {
-    const { tokenSupply, pricePerToken, walletAddress } = req.body;
+    const { tokenSupply, pricePerToken, email, walletAddress } = req.body;
 
-    if (!tokenSupply || tokenSupply <= 0 || !pricePerToken || !walletAddress) {
+    if (
+      !tokenSupply ||
+      tokenSupply <= 0 ||
+      !pricePerToken ||
+      !email ||
+      !walletAddress
+    ) {
       return res.status(400).json({
         error:
-          "Missing required fields: tokenSupply, pricePerToken, walletAddress",
+          "Missing required fields: tokenSupply, pricePerToken,email, walletAddress",
       });
     }
 
@@ -636,7 +641,7 @@ router.post("/:id/tokenize", async (req, res) => {
       });
     }
 
-    if (asset.owner_wallet.toLowerCase() !== walletAddress.toLowerCase()) {
+    if (asset.email !== email) {
       return res.status(403).json({ error: "Only asset owner can tokenize" });
     }
 
@@ -648,6 +653,7 @@ router.post("/:id/tokenize", async (req, res) => {
         token_supply: tokenSupply,
         price_per_token: pricePerToken,
         tokens_available: tokenSupply,
+        owner_wallet: walletAddress,
         tokenized_at: new Date().toISOString(),
         is_tokenized: true,
       })

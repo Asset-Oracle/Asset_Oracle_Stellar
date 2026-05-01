@@ -12,9 +12,9 @@ export const getUser = async (address: string) => {
   return user;
 };
 
-export const getUserDashboard = async (address: string) => {
+export const getUserDashboard = async (email: string) => {
   const userDashboard = await axios.get(
-    `${API_ENDPOINT}/api/user/dashboard/${address.toLowerCase()}`,
+    `${API_ENDPOINT}/api/user/dashboard/${email.toLowerCase()}`,
   );
   return userDashboard;
 };
@@ -66,13 +66,13 @@ export const getTokenizedassets = async () => {
 
 export const claimAsset = async (data: {
   id: string;
-  address: string;
+  email: string;
   documents: File[];
 }) => {
   const asset = await axios.post(
     `${API_ENDPOINT}/api/assets/${data.id}/claim`,
     {
-      walletAddress: data.address,
+      email: data.email,
       documents: data.documents,
     },
   );
@@ -81,6 +81,7 @@ export const claimAsset = async (data: {
 
 export const tokenizeAsset = async (data: {
   id: string;
+  email: string;
   address: string;
   tokenSupply: number;
   price_per_token: number;
@@ -90,6 +91,7 @@ export const tokenizeAsset = async (data: {
     {
       tokenSupply: data.tokenSupply,
       pricePerToken: data.price_per_token,
+      email: data.email,
       walletAddress: data.address,
     },
   );
@@ -100,7 +102,7 @@ export const register = async (param: {
   name: string;
   description: string;
   estimatedValue: number;
-  ownerWallet: string;
+  email: string;
   category?: string;
   location?: {
     address: string;
@@ -115,7 +117,7 @@ export const register = async (param: {
   formData.append("name", param.name);
   formData.append("description", param.description);
   formData.append("estimatedValue", param.estimatedValue.toString());
-  formData.append("ownerWallet", param.ownerWallet);
+  formData.append("email", param.email);
 
   if (param.category) formData.append("category", param.category);
 

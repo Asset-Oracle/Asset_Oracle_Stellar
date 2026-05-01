@@ -4,13 +4,14 @@ import MenuBar from "../components/MenuBar";
 import { useMutation } from "@tanstack/react-query";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { register } from "../server_functions/Server_Functions";
-import { useActiveEVMAccount } from "../Zustand/Store";
+import { useActiveEVMAccount, useAuth } from "../Zustand/Store";
 import InfoModal from "@/components/InfoModal";
 
 interface DashboardProps {
   sideBarOut: boolean;
 }
 function RegisterAsset({ sideBarOut }: DashboardProps) {
+  const account = useAuth((state) => state.activeAccount);
   const activeAccount = useActiveEVMAccount((state) => state.accout);
 
   const itemList = [
@@ -380,7 +381,7 @@ function RegisterAsset({ sideBarOut }: DashboardProps) {
         assetName,
         description,
         valuation,
-        ownerWallet: activeAccount?.address,
+        email: account.email,
       },
     ],
     mutationFn: () =>
@@ -388,7 +389,7 @@ function RegisterAsset({ sideBarOut }: DashboardProps) {
         name: assetName,
         description,
         estimatedValue: Number(valuation),
-        ownerWallet: activeAccount?.address!,
+        email: account.email,
         category: currentCategory,
         location: transformLocation(),
         propertyDetails: documentation,
@@ -416,10 +417,6 @@ function RegisterAsset({ sideBarOut }: DashboardProps) {
     if (currentPage < pages.current.length - 1) {
       setCurrentPage((prev) => prev + 1);
     } else {
-      if (!activeAccount.address) {
-        alert("Wallet Not Linked, Goto Settings");
-        return;
-      }
       mutate();
       setIsRegistering(true);
       console.log("Mutating");

@@ -19,7 +19,7 @@ import {
 import { encodeAbiParameters, keccak256, parseEther, toBytes } from "viem";
 import { tokenCreatorAbi } from "../ABI/abi";
 import PurchaseAsset from "../components/PurchaseAsset";
-import { useActiveEVMAccount } from "../Zustand/Store";
+import { useActiveEVMAccount, useAuth } from "../Zustand/Store";
 import InfoModal from "@/components/InfoModal";
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
@@ -30,6 +30,7 @@ interface DashboardProps {
 function Asset({ sideBarOut }: DashboardProps) {
   const { id } = useParams(); // get the dynamic "id" from the URL
   const nav = useNavigate();
+  const User = useAuth((state) => state.activeAccount);
   const [tokenPrice, setTokenPrice] = useState("");
   const [tokenSupply, setTokenSupply] = useState("");
   const [isMintable, setIsMintable] = useState(false);
@@ -62,12 +63,12 @@ function Asset({ sideBarOut }: DashboardProps) {
   } = useMutation({
     mutationKey: [
       "claim_asset",
-      { id, address: activeAccount?.address, documents: documentation },
+      { id, email: User.email, documents: documentation },
     ],
     mutationFn: () =>
       claimAsset({
         id: id || "",
-        address: activeAccount?.address!,
+        email: User.email,
         documents: documentation || [],
       }),
   });
@@ -91,6 +92,7 @@ function Asset({ sideBarOut }: DashboardProps) {
     mutationFn: () =>
       tokenizeAsset({
         id: id || "",
+        email: User.email,
         address: activeAccount?.address!,
         tokenSupply: Number(tokenSupply),
         price_per_token: Number(tokenPrice),
@@ -403,8 +405,7 @@ function Asset({ sideBarOut }: DashboardProps) {
                     </div>
                   </div>
                   {assetInfo.verification_status !== "TOKENIZED" &&
-                    activeAccount.address.toLowerCase() ===
-                      assetInfo.owner_wallet.toLowerCase() && (
+                    User.email === assetInfo.email && (
                       <div className="border border-[#e2e8f0] shadow-md p-5 rounded-md mt-10">
                         {page4()}
                       </div>

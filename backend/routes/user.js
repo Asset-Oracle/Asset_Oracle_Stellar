@@ -20,21 +20,21 @@ router.get("/:id", async (req, res) => {
     data: userData,
   });
 });
-router.get("/dashboard/:walletAddress", async (req, res) => {
+router.get("/dashboard/:email", async (req, res) => {
   try {
-    const { walletAddress } = req.params;
+    const { email } = req.params;
 
-    if (!walletAddress) {
+    if (!email) {
       return res.status(400).json({ error: "Wallet address required" });
     }
 
-    console.log(`📊 Fetching dashboard for: ${walletAddress}`);
+    console.log(`📊 Fetching dashboard for: ${email}`);
 
     // Get user's assets (case-insensitive)
     const { data: userAssets, error: assetsError } = await supabase
       .from("assets")
       .select("*")
-      .ilike("owner_wallet", walletAddress)
+      .ilike("email", email)
       .order("created_at", { ascending: false });
 
     if (assetsError) throw assetsError;
@@ -88,7 +88,7 @@ router.get("/dashboard/:walletAddress", async (req, res) => {
     res.json({
       success: true,
       data: {
-        walletAddress: walletAddress,
+        email,
         stats: stats,
         assets: userAssets,
         assetsByStatus: assetsByStatus,

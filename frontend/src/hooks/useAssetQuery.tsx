@@ -44,6 +44,7 @@ export interface AssetInfo {
   price_per_token: number | null;
   tokenized_at?: string | null;
   tokens_available?: boolean | null;
+  email: string | null;
 }
 
 export const useGetAssetInfo = () => {

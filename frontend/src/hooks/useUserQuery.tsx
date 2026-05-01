@@ -8,7 +8,7 @@ import {
   getUser,
   getUserDashboard,
 } from "../server_functions/Server_Functions";
-import { useActiveEVMAccount } from "../Zustand/Store";
+import { useActiveEVMAccount, useAuth } from "../Zustand/Store";
 
 interface UserInfo {
   email: string;
@@ -26,6 +26,7 @@ interface DashboardInfo {
 export const useGetUserInfo = () => {
   const [backendUser, setBackendUser] = useState<UserInfo | null>(null);
   const [dashboardInfo, setDashBoardInfo] = useState<number[] | null>(null);
+  const account = useAuth((state) => state.activeAccount);
   const ActiveAccount = useActiveEVMAccount((state) => state.accout);
   const [allAssets, setAllAssets] = useState<AssetInfo[] | null>(null);
 
@@ -53,9 +54,9 @@ export const useGetUserInfo = () => {
   });
 
   const { data: userDashboardInfo, error: userDashboardInfoError } = useQuery({
-    queryKey: ["getUserDashboard", ActiveAccount?.address?.toLowerCase()],
-    queryFn: () => getUserDashboard(ActiveAccount?.address!.toLowerCase()),
-    enabled: !!ActiveAccount?.address?.toLowerCase(),
+    queryKey: ["getUserDashboard", account.email],
+    queryFn: () => getUserDashboard(account.email),
+    enabled: !!account.email,
   });
 
   useEffect(() => {
